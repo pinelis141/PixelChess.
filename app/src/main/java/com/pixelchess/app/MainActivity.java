@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.11 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    TextView ver=title("\nMVP 0.12 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
@@ -90,9 +90,10 @@ public class MainActivity extends Activity {
     String sym(String q){String a="kqrbnp";String[] z={"♚","♛","♜","♝","♞","♟"};int i=a.indexOf(Character.toLowerCase(q.charAt(0)));return i<0?q:z[i];}
     public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;float s=getWidth()/8f,top=Math.max(150*getResources().getDisplayMetrics().density,(getHeight()-getWidth())/2f-30*getResources().getDisplayMetrics().density);int vx=(int)(e.getX()/s),vr=(int)((e.getY()-top)/s);if(vr<0||vr>7||vx<0||vx>7)return true;boolean flip=bluetoothGame&&!myWhite;int x=flip?7-vx:vx,r=flip?7-vr:vr;if(gameOver){toast("A partida terminou");return true;}
       if(bluetoothGame && white!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(b[r][x]!=null&&isWhite(b[r][x])==white){select(r,x);}else if(legal(sr,sc,r,x,false)){int a=sr,d=sc;String moving=b[a][d];boolean promotes=moving!=null&&Character.toLowerCase(moving.charAt(0))=='p'&&(r==0||r==7);if(promotes)moveWithPromotionChoice(a,d,r,x);else{move(a,d,r,x,"-");sendMove(a,d,r,x,"-");}sr=sc=-1;invalidate();}return true;}
-    void remoteMove(int r1,int c1,int r2,int c2,String promo,long wm,long bm){if(bluetoothGame&&white!=myWhite&&legal(r1,c1,r2,c2,false)){move(r1,c1,r2,c2,promo);whiteMs=Math.max(0,wm);blackMs=Math.max(0,bm);lastTick=System.currentTimeMillis();sr=sc=-1;invalidate();}}
+    void remoteMove(int r1,int c1,int r2,int c2,String promo,long wm,long bm){if(bluetoothGame&&white!=myWhite&&legal(r1,c1,r2,c2,false)){move(r1,c1,r2,c2,promo);whiteMs=Math.max(0,wm);blackMs=Math.max(0,bm);lastTick=System.currentTimeMillis();sr=sc=-1;if(!gameOver&&white==myWhite)vibrateTurn();invalidate();}}
     void applyClockSync(long wm,long bm,boolean turn){if(!bluetoothGame||myWhite)return;whiteMs=Math.max(0,wm);blackMs=Math.max(0,bm);white=turn;lastTick=System.currentTimeMillis();invalidate();}
     void applyRemoteFlag(boolean loserWhite){if(gameOver)return;if(loserWhite)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loserWhite?"PRETAS":"BRANCAS")+" VENCEM";invalidate();}
+    void vibrateTurn(){try{Vibrator v=(Vibrator)getSystemService(Context.VIBRATOR_SERVICE);if(v==null||!v.hasVibrator())return;if(Build.VERSION.SDK_INT>=26)v.vibrate(VibrationEffect.createOneShot(70,VibrationEffect.DEFAULT_AMPLITUDE));else v.vibrate(70);}catch(Exception ignored){}}
     void moveWithPromotionChoice(int r1,int c1,int r2,int c2){
       final boolean side=isWhite(b[r1][c1]);final String[] labels={"DAMA","TORRE","BISPO","CAVALO"},pcs={"Q","R","B","N"};
       LinearLayout box=new LinearLayout(MainActivity.this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(32,16,32,16);
