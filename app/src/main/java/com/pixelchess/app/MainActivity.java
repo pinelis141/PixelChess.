@@ -7,10 +7,16 @@ import android.graphics.drawable.*;
 import android.view.*;
 import android.widget.*;
 import android.content.*;
+import android.content.pm.PackageManager;
+import android.bluetooth.*;
 import java.util.*;
+import java.io.*;
+import java.util.UUID;
 
 public class MainActivity extends Activity {
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
+  static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
+  BluetoothAdapter adapter; BluetoothSocket socket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut;
   @Override public void onCreate(Bundle b){super.onCreate(b); showMenu();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
@@ -21,11 +27,24 @@ public class MainActivity extends Activity {
     TextView logo=title("♜  PIXEL CHESS  ♞",30); box.addView(logo,new LinearLayout.LayoutParams(-1,-2));
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->setContentView(new ChessView(this))); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
-    Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->new AlertDialog.Builder(this).setTitle("Bluetooth").setMessage("O modo Bluetooth será ativado na próxima versão. O tabuleiro e as regras completas já estão sendo validados primeiro.").setPositiveButton("OK",null).show()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.2 • Gota Labs",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
+    TextView ver=title("\nMVP 0.3 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
-  @Override public void onBackPressed(){ showMenu(); }
+  @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
+
+  boolean btPermission(){ if(Build.VERSION.SDK_INT>=31 && checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT","android.permission.BLUETOOTH_SCAN"},42);return false;}return true; }
+  void bluetoothMenu(){
+    if(!btPermission())return; adapter=BluetoothAdapter.getDefaultAdapter(); if(adapter==null){toast("Este aparelho não possui Bluetooth");return;} if(!adapter.isEnabled()){toast("Ative o Bluetooth e tente novamente");return;}
+    new AlertDialog.Builder(this).setTitle("Jogar via Bluetooth").setMessage("Os dois celulares precisam estar pareados nas configurações do Android.").setPositiveButton("CRIAR PARTIDA",(d,w)->hostGame()).setNegativeButton("ENTRAR",(d,w)->chooseDevice()).setNeutralButton("CANCELAR",null).show();
+  }
+  void hostGame(){toast("Aguardando o outro jogador…"); new Thread(()->{try{BluetoothServerSocket server=adapter.listenUsingRfcommWithServiceRecord("PixelChess",GAME_UUID);socket=server.accept();server.close();startBtGame(true);}catch(Exception e){runOnUiThread(()->toast("Falha ao criar partida: "+e.getMessage()));}}).start();}
+  void chooseDevice(){Set<BluetoothDevice> ds=adapter.getBondedDevices();if(ds.isEmpty()){toast("Nenhum aparelho pareado. Pareie os celulares primeiro.");return;} final ArrayList<BluetoothDevice> list=new ArrayList<>(ds);String[] names=new String[list.size()];for(int i=0;i<list.size();i++){String n=list.get(i).getName();names[i]=n==null?list.get(i).getAddress():n;}new AlertDialog.Builder(this).setTitle("Escolha o celular").setItems(names,(d,i)->connectGame(list.get(i))).show();}
+  void connectGame(BluetoothDevice dev){toast("Conectando…");new Thread(()->{try{socket=dev.createRfcommSocketToServiceRecord(GAME_UUID);adapter.cancelDiscovery();socket.connect();startBtGame(false);}catch(Exception e){runOnUiThread(()->toast("Não conectou: "+e.getMessage()));}}).start();}
+  void startBtGame(boolean host)throws Exception{bluetoothGame=true;myWhite=host;btOut=socket.getOutputStream();runOnUiThread(()->{game=new ChessView(this);game.status=host?"VOCÊ É BRANCAS":"VOCÊ É PRETAS";setContentView(game);});InputStream in=socket.getInputStream();BufferedReader br=new BufferedReader(new InputStreamReader(in));String line;while((line=br.readLine())!=null){String[] a=line.split(",");if(a.length==4){int r1=Integer.parseInt(a[0]),c1=Integer.parseInt(a[1]),r2=Integer.parseInt(a[2]),c2=Integer.parseInt(a[3]);runOnUiThread(()->game.remoteMove(r1,c1,r2,c2));}}}
+  void sendMove(int r1,int c1,int r2,int c2){if(!bluetoothGame||btOut==null)return;new Thread(()->{try{btOut.write((r1+","+c1+","+r2+","+c2+"\n").getBytes("UTF-8"));btOut.flush();}catch(Exception e){runOnUiThread(()->toast("Conexão Bluetooth perdida"));}}).start();}
+  void closeBluetooth(){bluetoothGame=false;try{if(socket!=null)socket.close();}catch(Exception ignored){}socket=null;btOut=null;}
+  void toast(String x){Toast.makeText(this,x,Toast.LENGTH_LONG).show();}
 
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
@@ -46,7 +65,8 @@ public class MainActivity extends Activity {
     }
     String sym(String q){String a="kqrbnp";String[] z={"♚","♛","♜","♝","♞","♟"};int i=a.indexOf(Character.toLowerCase(q.charAt(0)));return i<0?q:z[i];}
     public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;float s=getWidth()/8f,top=(getHeight()-getWidth())/2f;int x=(int)(e.getX()/s),r=(int)((e.getY()-top)/s);if(r<0||r>7||x<0||x>7)return true;
-      if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(b[r][x]!=null&&isWhite(b[r][x])==white){select(r,x);}else if(legal(sr,sc,r,x,false)){move(sr,sc,r,x);sr=sc=-1;invalidate();}return true;}
+      if(bluetoothGame && white!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(b[r][x]!=null&&isWhite(b[r][x])==white){select(r,x);}else if(legal(sr,sc,r,x,false)){int a=sr,d=sc;move(sr,sc,r,x);sendMove(a,d,r,x);sr=sc=-1;invalidate();}return true;}
+    void remoteMove(int r1,int c1,int r2,int c2){if(bluetoothGame&&white!=myWhite&&legal(r1,c1,r2,c2,false)){move(r1,c1,r2,c2);sr=sc=-1;invalidate();}}
     void select(int r,int c){if(b[r][c]!=null&&isWhite(b[r][c])==white){sr=r;sc=c;invalidate();}}
     boolean isWhite(String q){return Character.isUpperCase(q.charAt(0));}
     boolean inside(int r,int c){return r>=0&&r<8&&c>=0&&c<8;}
