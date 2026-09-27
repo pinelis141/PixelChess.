@@ -1,4 +1,4 @@
 plugins { id 'com.android.application' }
 android { namespace 'com.pixelchess.app'; compileSdk 35
- defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 9; versionName '0.9.0' }
+ defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 10; versionName '0.10.0' }
 }
