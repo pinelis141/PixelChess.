@@ -101,7 +101,7 @@ public class MainActivity extends Activity {
       if(t=='p'&&c1!=c2&&captured==null&&r2==epR&&c2==epC)b[r1][c2]=null;
       if(t=='k'&&Math.abs(c2-c1)==2){int rc=c2>c1?7:0,nc=c2>c1?5:3;b[r2][nc]=b[r2][rc];b[r2][rc]=null;}
       b[r2][c2]=q;b[r1][c1]=null;
-      if(t=='p'&&(r2==0||r2==7))b[r2][c2]=side?"Q":"q";
+      if(t=='p'&&(r2==0||r2==7)){ b[r2][c2]=side?"Q":"q"; final int pr=r2,pc=c2; final boolean ps=side; runOnUiThread(()->new AlertDialog.Builder(MainActivity.this).setTitle("PROMOÇÃO").setMessage("Escolha a peça:").setItems(new String[]{"♛  Dama","♜  Torre","♝  Bispo","♞  Cavalo"},(d,i)->{char[] pcs={'Q','R','B','N'}; char z=pcs[i]; b[pr][pc]=""+(ps?z:Character.toLowerCase(z)); invalidate();}).setCancelable(false).show()); }
       epR=epC=-1;if(t=='p'&&Math.abs(r2-r1)==2){epR=(r1+r2)/2;epC=c1;}
       if(t=='k'){if(side)wKm=true;else bKm=true;} if(t=='r'){if(side&&r1==7&&c1==0)wRa=true;if(side&&r1==7&&c1==7)wRh=true;if(!side&&r1==0&&c1==0)bRa=true;if(!side&&r1==0&&c1==7)bRh=true;}
       white=!white;boolean check=inCheck(white),any=false;
