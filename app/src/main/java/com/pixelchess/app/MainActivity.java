@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->setContentView(new ChessView(this))); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.5 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    TextView ver=title("\nMVP 0.6 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
@@ -49,10 +49,10 @@ public class MainActivity extends Activity {
 
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
-    boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false; int epR=-1,epC=-1;
+    boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false; int epR=-1,epC=-1,halfmove=0; HashMap<String,Integer> repetitions=new HashMap<>();
     final String back="rnbqkbnr";
     ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); reset();}
-    void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;status="BRANCAS JOGAM";invalidate();}
+    void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;halfmove=0;repetitions.clear();status="BRANCAS JOGAM";recordPosition();invalidate();}
     protected void onDraw(Canvas c){
       super.onDraw(c);c.drawColor(bg);float w=getWidth(),s=w/8f,top=(getHeight()-w)/2f;
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
@@ -104,6 +104,9 @@ public class MainActivity extends Activity {
       return false;
     }
     boolean inCheck(boolean side){for(int r=0;r<8;r++)for(int c=0;c<8;c++){String q=b[r][c];if(q!=null&&Character.toLowerCase(q.charAt(0))=='k'&&isWhite(q)==side)return attacked(r,c,!side);}return false;}
+    String positionKey(){StringBuilder k=new StringBuilder();for(int r=0;r<8;r++)for(int c=0;c<8;c++)k.append(b[r][c]==null?".":b[r][c]);k.append(white?"w":"b").append(wKm?"1":"0").append(bKm?"1":"0").append(wRa?"1":"0").append(wRh?"1":"0").append(bRa?"1":"0").append(bRh?"1":"0").append(epR).append(":").append(epC);return k.toString();}
+    int recordPosition(){String k=positionKey();int n=repetitions.containsKey(k)?repetitions.get(k)+1:1;repetitions.put(k,n);return n;}
+    boolean insufficientMaterial(){ArrayList<Character> pcs=new ArrayList<>();ArrayList<Integer> bishops=new ArrayList<>();for(int r=0;r<8;r++)for(int c=0;c<8;c++){String q=b[r][c];if(q==null)continue;char t=Character.toLowerCase(q.charAt(0));if(t=='k')continue;if(t=='p'||t=='q'||t=='r')return false;pcs.add(t);if(t=='b')bishops.add((r+c)&1);}if(pcs.size()==0)return true;if(pcs.size()==1&&(pcs.get(0)=='b'||pcs.get(0)=='n'))return true;if(pcs.size()>0&&pcs.size()==bishops.size()){int color=bishops.get(0);for(int x:bishops)if(x!=color)return false;return true;}return false;}
     boolean castlePossible(boolean side,boolean kingSide){int r=side?7:0;if(side?(wKm||(kingSide?wRh:wRa)):(bKm||(kingSide?bRh:bRa)))return false;int rook=kingSide?7:0;String rq=b[r][rook];if(rq==null||Character.toLowerCase(rq.charAt(0))!='r'||isWhite(rq)!=side)return false;int step=kingSide?1:-1;for(int c=4+step;c!=rook;c+=step)if(b[r][c]!=null)return false;if(inCheck(side)||attacked(r,4+step,!side)||attacked(r,4+2*step,!side))return false;return true;}
     void move(int r1,int c1,int r2,int c2,String promotion){
       String q=b[r1][c1];boolean side=isWhite(q);char t=Character.toLowerCase(q.charAt(0));String captured=b[r2][c2];
@@ -113,9 +116,9 @@ public class MainActivity extends Activity {
       if(t=='p'&&(r2==0||r2==7)){String z=(promotion==null||promotion.equals("-"))?(side?"Q":"q"):promotion;b[r2][c2]=z;}
       epR=epC=-1;if(t=='p'&&Math.abs(r2-r1)==2){epR=(r1+r2)/2;epC=c1;}
       if(t=='k'){if(side)wKm=true;else bKm=true;} if(t=='r'){if(side&&r1==7&&c1==0)wRa=true;if(side&&r1==7&&c1==7)wRh=true;if(!side&&r1==0&&c1==0)bRa=true;if(!side&&r1==0&&c1==7)bRh=true;} if(captured!=null&&Character.toLowerCase(captured.charAt(0))=='r'){if(r2==7&&c2==0)wRa=true;if(r2==7&&c2==7)wRh=true;if(r2==0&&c2==0)bRa=true;if(r2==0&&c2==7)bRh=true;}
-      white=!white;boolean check=inCheck(white),any=false;
+      if(t=='p'||captured!=null)halfmove=0;else halfmove++;white=!white;int repeated=recordPosition();boolean check=inCheck(white),any=false;
       outer:for(int a=0;a<8;a++)for(int d=0;d<8;d++){String z=b[a][d];if(z==null||isWhite(z)!=white)continue;for(int e=0;e<8;e++)for(int f=0;f<8;f++)if(legal(a,d,e,f,false)){any=true;break outer;}}
-      if(!any){gameOver=true;status=check?"XEQUE-MATE • "+(white?"PRETAS":"BRANCAS")+" VENCEM":"EMPATE • AFOGAMENTO";}else status=(white?"BRANCAS":"PRETAS")+" JOGAM"+(check?" • XEQUE!":"");
+      if(!any){gameOver=true;status=check?"XEQUE-MATE • "+(white?"PRETAS":"BRANCAS")+" VENCEM":"EMPATE • AFOGAMENTO";}else if(insufficientMaterial()){gameOver=true;status="EMPATE • MATERIAL INSUFICIENTE";}else if(halfmove>=100){gameOver=true;status="EMPATE • REGRA DOS 50 LANCES";}else if(repeated>=3){gameOver=true;status="EMPATE • REPETIÇÃO TRIPLA";}else status=(white?"BRANCAS":"PRETAS")+" JOGAM"+(check?" • XEQUE!":"");
     }
   }
 }
