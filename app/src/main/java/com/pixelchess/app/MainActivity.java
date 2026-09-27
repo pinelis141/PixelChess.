@@ -16,7 +16,7 @@ import java.util.UUID;
 public class MainActivity extends Activity {
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
   static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
-  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10;
+  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10; final Object btWriteLock=new Object();
   @Override public void onCreate(Bundle b){super.onCreate(b); showMenu();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.10 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    TextView ver=title("\nMVP 0.11 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
@@ -42,18 +42,21 @@ public class MainActivity extends Activity {
   void hostGame(){toast("Aguardando o outro jogador…"); new Thread(()->{try{serverSocket=adapter.listenUsingRfcommWithServiceRecord("PixelChess",GAME_UUID);socket=serverSocket.accept();serverSocket.close();serverSocket=null;startBtGame(true);}catch(Exception e){if(serverSocket!=null)runOnUiThread(()->toast("Falha ao criar partida: "+e.getMessage()));}}).start();}
   void chooseDevice(){Set<BluetoothDevice> ds=adapter.getBondedDevices();if(ds.isEmpty()){toast("Nenhum aparelho pareado. Pareie os celulares primeiro.");return;} final ArrayList<BluetoothDevice> list=new ArrayList<>(ds);String[] names=new String[list.size()];for(int i=0;i<list.size();i++){String n=list.get(i).getName();names[i]=n==null?list.get(i).getAddress():n;}new AlertDialog.Builder(this).setTitle("Escolha o celular").setItems(names,(d,i)->connectGame(list.get(i))).show();}
   void connectGame(BluetoothDevice dev){toast("Conectando…");new Thread(()->{try{socket=dev.createRfcommSocketToServiceRecord(GAME_UUID);adapter.cancelDiscovery();socket.connect();startBtGame(false);}catch(Exception e){runOnUiThread(()->toast("Não conectou: "+e.getMessage()));}}).start();}
-  void startBtGame(boolean host)throws Exception{bluetoothGame=true;myWhite=host;btOut=socket.getOutputStream();InputStream in=socket.getInputStream();BufferedReader br=new BufferedReader(new InputStreamReader(in));if(host){btOut.write(("TIME,"+selectedMinutes+"\n").getBytes("UTF-8"));btOut.flush();}else{String setup=br.readLine();if(setup==null||!setup.startsWith("TIME,"))throw new IOException("Configuração da sala inválida");selectedMinutes=Integer.parseInt(setup.substring(5));}runOnUiThread(()->{game=new ChessView(this);game.status=host?"VOCÊ É BRANCAS":"VOCÊ É PRETAS";setContentView(game);});String line;while((line=br.readLine())!=null){String[] a=line.split(",");if(a.length>=4){int r1=Integer.parseInt(a[0]),c1=Integer.parseInt(a[1]),r2=Integer.parseInt(a[2]),c2=Integer.parseInt(a[3]);String promo=a.length>=5?a[4]:"-";runOnUiThread(()->game.remoteMove(r1,c1,r2,c2,promo));}}}
+  void startBtGame(boolean host)throws Exception{bluetoothGame=true;myWhite=host;btOut=socket.getOutputStream();InputStream in=socket.getInputStream();BufferedReader br=new BufferedReader(new InputStreamReader(in));if(host){writeBt("TIME,"+selectedMinutes);}else{String setup=br.readLine();if(setup==null||!setup.startsWith("TIME,"))throw new IOException("Configuração da sala inválida");selectedMinutes=Integer.parseInt(setup.substring(5));}runOnUiThread(()->{game=new ChessView(this);game.status=host?"VOCÊ É BRANCAS":"VOCÊ É PRETAS";setContentView(game);});String line;while((line=br.readLine())!=null){final String msg=line;if(msg.startsWith("MOVE,")){String[] a=msg.split(",");if(a.length>=8){int r1=Integer.parseInt(a[1]),c1=Integer.parseInt(a[2]),r2=Integer.parseInt(a[3]),c2=Integer.parseInt(a[4]);String promo=a[5];long wm=Long.parseLong(a[6]),bm=Long.parseLong(a[7]);runOnUiThread(()->game.remoteMove(r1,c1,r2,c2,promo,wm,bm));}}else if(msg.startsWith("SYNC,")){String[] a=msg.split(",");if(a.length>=4){long wm=Long.parseLong(a[1]),bm=Long.parseLong(a[2]);boolean turn=a[3].equals("W");runOnUiThread(()->game.applyClockSync(wm,bm,turn));}}else if(msg.startsWith("FLAG,")){String[] a=msg.split(",");if(a.length>=2){boolean loserWhite=a[1].equals("W");runOnUiThread(()->game.applyRemoteFlag(loserWhite));}}}}
+  void writeBt(String msg)throws IOException{synchronized(btWriteLock){if(btOut==null)throw new IOException("Sem conexão");btOut.write((msg+"\n").getBytes("UTF-8"));btOut.flush();}}
   void sendMove(int r1,int c1,int r2,int c2){sendMove(r1,c1,r2,c2,"-");}
-  void sendMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||btOut==null)return;new Thread(()->{try{btOut.write((r1+","+c1+","+r2+","+c2+","+promo+"\n").getBytes("UTF-8"));btOut.flush();}catch(Exception e){runOnUiThread(()->toast("Conexão Bluetooth perdida"));}}).start();}
+  void sendMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||btOut==null||game==null)return;final long wm=game.whiteMs,bm=game.blackMs;new Thread(()->{try{writeBt("MOVE,"+r1+","+c1+","+r2+","+c2+","+promo+","+wm+","+bm);}catch(Exception e){runOnUiThread(()->toast("Conexão Bluetooth perdida"));}}).start();}
+  void sendClockSync(){if(!bluetoothGame||btOut==null||game==null)return;final long wm=game.whiteMs,bm=game.blackMs;final String turn=game.white?"W":"B";new Thread(()->{try{writeBt("SYNC,"+wm+","+bm+","+turn);}catch(Exception ignored){}}).start();}
+  void sendFlag(boolean loserWhite){if(!bluetoothGame||btOut==null)return;new Thread(()->{try{writeBt("FLAG,"+(loserWhite?"W":"B"));}catch(Exception ignored){}}).start();}
   void closeBluetooth(){bluetoothGame=false;try{if(serverSocket!=null)serverSocket.close();}catch(Exception ignored){}try{if(socket!=null)socket.close();}catch(Exception ignored){}serverSocket=null;socket=null;btOut=null;}
   void toast(String x){Toast.makeText(this,x,Toast.LENGTH_LONG).show();}
 
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
-    boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false; int epR=-1,epC=-1,halfmove=0; HashMap<String,Integer> repetitions=new HashMap<>(); long whiteMs,blackMs,lastTick; ArrayList<String> history=new ArrayList<>(); Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
+    boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false,flagSent=false; int epR=-1,epC=-1,halfmove=0; HashMap<String,Integer> repetitions=new HashMap<>(); long whiteMs,blackMs,lastTick,lastSyncSent; ArrayList<String> history=new ArrayList<>(); Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
     final String back="rnbqkbnr";
-    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){gameOver=true;status="TEMPO • "+(white?"PRETAS":"BRANCAS")+" VENCEM";}invalidate();clock.postDelayed(ticker,250);}};lastTick=System.currentTimeMillis();clock.post(ticker);}
-    void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;halfmove=0;repetitions.clear();history.clear();whiteMs=blackMs=selectedMinutes*60000L;lastTick=System.currentTimeMillis();status="BRANCAS JOGAM";recordPosition();invalidate();}
+    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
+    void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;flagSent=false;halfmove=0;repetitions.clear();history.clear();whiteMs=blackMs=selectedMinutes*60000L;lastTick=System.currentTimeMillis();lastSyncSent=lastTick;status="BRANCAS JOGAM";recordPosition();invalidate();}
     protected void onDraw(Canvas c){
       super.onDraw(c);c.drawColor(bg);float w=getWidth(),s=w/8f;float top=Math.max(150*getResources().getDisplayMetrics().density,(getHeight()-w)/2f-30*getResources().getDisplayMetrics().density);
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
@@ -70,13 +73,14 @@ public class MainActivity extends Activity {
       }
       p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,getResources().getDisplayMetrics().density));p.setColor(Color.argb(95,20,24,28));for(int i=0;i<=8;i++){c.drawLine(i*s,top,i*s,top+w,p);c.drawLine(0,top+i*s,w,top+i*s,p);}p.setStyle(Paint.Style.FILL);
       float den=getResources().getDisplayMetrics().density;
-      p.setTextSize(13*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.LTGRAY);c.drawText("PRETAS",w/2,top-112*den,p);
-      p.setTextSize(26*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(clockText(blackMs),w/2,top-82*den,p);
+      boolean bottomWhite=!bluetoothGame||myWhite;String topName=bottomWhite?"PRETAS":"BRANCAS";String bottomName=bottomWhite?"BRANCAS":"PRETAS";long topMs=bottomWhite?blackMs:whiteMs,bottomMs=bottomWhite?whiteMs:blackMs;
+      p.setTextSize(13*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.LTGRAY);c.drawText(topName,w/2,top-112*den,p);
+      p.setTextSize(26*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(clockText(topMs),w/2,top-82*den,p);
       p.setTextSize(15*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(status,w/2,top-42*den,p);
       p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.argb(210,235,221,184));
       for(int i=0;i<8;i++){int file=flip?7-i:i;int rank=flip?i:7-i;c.drawText(""+(char)('A'+file),i*s+s/2,top+w+14*den,p);p.setTextAlign(Paint.Align.LEFT);c.drawText(""+(rank+1),3*den,top+i*s+14*den,p);p.setTextAlign(Paint.Align.CENTER);}
-      p.setTextSize(13*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.LTGRAY);c.drawText("BRANCAS",w/2,top+w+42*den,p);
-      p.setTextSize(26*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(clockText(whiteMs),w/2,top+w+72*den,p);
+      p.setTextSize(13*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.LTGRAY);c.drawText(bottomName,w/2,top+w+42*den,p);
+      p.setTextSize(26*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(clockText(bottomMs),w/2,top+w+72*den,p);
       p.setTextSize(12*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.GRAY);String h=history.isEmpty()?"JOGADAS • nenhuma":historyLine();c.drawText(h,w/2,Math.min(getHeight()-48*den,top+w+108*den),p);
       p.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.DKGRAY);c.drawText("PIXEL CHESS",w/2,Math.min(getHeight()-20*den,top+w+134*den),p);
     }
@@ -86,7 +90,9 @@ public class MainActivity extends Activity {
     String sym(String q){String a="kqrbnp";String[] z={"♚","♛","♜","♝","♞","♟"};int i=a.indexOf(Character.toLowerCase(q.charAt(0)));return i<0?q:z[i];}
     public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;float s=getWidth()/8f,top=Math.max(150*getResources().getDisplayMetrics().density,(getHeight()-getWidth())/2f-30*getResources().getDisplayMetrics().density);int vx=(int)(e.getX()/s),vr=(int)((e.getY()-top)/s);if(vr<0||vr>7||vx<0||vx>7)return true;boolean flip=bluetoothGame&&!myWhite;int x=flip?7-vx:vx,r=flip?7-vr:vr;if(gameOver){toast("A partida terminou");return true;}
       if(bluetoothGame && white!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(b[r][x]!=null&&isWhite(b[r][x])==white){select(r,x);}else if(legal(sr,sc,r,x,false)){int a=sr,d=sc;String moving=b[a][d];boolean promotes=moving!=null&&Character.toLowerCase(moving.charAt(0))=='p'&&(r==0||r==7);if(promotes)moveWithPromotionChoice(a,d,r,x);else{move(a,d,r,x,"-");sendMove(a,d,r,x,"-");}sr=sc=-1;invalidate();}return true;}
-    void remoteMove(int r1,int c1,int r2,int c2,String promo){if(bluetoothGame&&white!=myWhite&&legal(r1,c1,r2,c2,false)){move(r1,c1,r2,c2,promo);sr=sc=-1;invalidate();}}
+    void remoteMove(int r1,int c1,int r2,int c2,String promo,long wm,long bm){if(bluetoothGame&&white!=myWhite&&legal(r1,c1,r2,c2,false)){move(r1,c1,r2,c2,promo);whiteMs=Math.max(0,wm);blackMs=Math.max(0,bm);lastTick=System.currentTimeMillis();sr=sc=-1;invalidate();}}
+    void applyClockSync(long wm,long bm,boolean turn){if(!bluetoothGame||myWhite)return;whiteMs=Math.max(0,wm);blackMs=Math.max(0,bm);white=turn;lastTick=System.currentTimeMillis();invalidate();}
+    void applyRemoteFlag(boolean loserWhite){if(gameOver)return;if(loserWhite)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loserWhite?"PRETAS":"BRANCAS")+" VENCEM";invalidate();}
     void moveWithPromotionChoice(int r1,int c1,int r2,int c2){
       final boolean side=isWhite(b[r1][c1]);final String[] labels={"DAMA","TORRE","BISPO","CAVALO"},pcs={"Q","R","B","N"};
       LinearLayout box=new LinearLayout(MainActivity.this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(32,16,32,16);
