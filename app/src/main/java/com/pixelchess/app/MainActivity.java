@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->setContentView(new ChessView(this))); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.3 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    TextView ver=title("\nMVP 0.4 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
@@ -41,8 +41,9 @@ public class MainActivity extends Activity {
   void hostGame(){toast("Aguardando o outro jogador…"); new Thread(()->{try{BluetoothServerSocket server=adapter.listenUsingRfcommWithServiceRecord("PixelChess",GAME_UUID);socket=server.accept();server.close();startBtGame(true);}catch(Exception e){runOnUiThread(()->toast("Falha ao criar partida: "+e.getMessage()));}}).start();}
   void chooseDevice(){Set<BluetoothDevice> ds=adapter.getBondedDevices();if(ds.isEmpty()){toast("Nenhum aparelho pareado. Pareie os celulares primeiro.");return;} final ArrayList<BluetoothDevice> list=new ArrayList<>(ds);String[] names=new String[list.size()];for(int i=0;i<list.size();i++){String n=list.get(i).getName();names[i]=n==null?list.get(i).getAddress():n;}new AlertDialog.Builder(this).setTitle("Escolha o celular").setItems(names,(d,i)->connectGame(list.get(i))).show();}
   void connectGame(BluetoothDevice dev){toast("Conectando…");new Thread(()->{try{socket=dev.createRfcommSocketToServiceRecord(GAME_UUID);adapter.cancelDiscovery();socket.connect();startBtGame(false);}catch(Exception e){runOnUiThread(()->toast("Não conectou: "+e.getMessage()));}}).start();}
-  void startBtGame(boolean host)throws Exception{bluetoothGame=true;myWhite=host;btOut=socket.getOutputStream();runOnUiThread(()->{game=new ChessView(this);game.status=host?"VOCÊ É BRANCAS":"VOCÊ É PRETAS";setContentView(game);});InputStream in=socket.getInputStream();BufferedReader br=new BufferedReader(new InputStreamReader(in));String line;while((line=br.readLine())!=null){String[] a=line.split(",");if(a.length==4){int r1=Integer.parseInt(a[0]),c1=Integer.parseInt(a[1]),r2=Integer.parseInt(a[2]),c2=Integer.parseInt(a[3]);runOnUiThread(()->game.remoteMove(r1,c1,r2,c2));}}}
-  void sendMove(int r1,int c1,int r2,int c2){if(!bluetoothGame||btOut==null)return;new Thread(()->{try{btOut.write((r1+","+c1+","+r2+","+c2+"\n").getBytes("UTF-8"));btOut.flush();}catch(Exception e){runOnUiThread(()->toast("Conexão Bluetooth perdida"));}}).start();}
+  void startBtGame(boolean host)throws Exception{bluetoothGame=true;myWhite=host;btOut=socket.getOutputStream();runOnUiThread(()->{game=new ChessView(this);game.status=host?"VOCÊ É BRANCAS":"VOCÊ É PRETAS";setContentView(game);});InputStream in=socket.getInputStream();BufferedReader br=new BufferedReader(new InputStreamReader(in));String line;while((line=br.readLine())!=null){String[] a=line.split(",");if(a.length>=4){int r1=Integer.parseInt(a[0]),c1=Integer.parseInt(a[1]),r2=Integer.parseInt(a[2]),c2=Integer.parseInt(a[3]);String promo=a.length>=5?a[4]:"-";runOnUiThread(()->game.remoteMove(r1,c1,r2,c2,promo));}}}
+  void sendMove(int r1,int c1,int r2,int c2){sendMove(r1,c1,r2,c2,"-");}
+  void sendMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||btOut==null)return;new Thread(()->{try{btOut.write((r1+","+c1+","+r2+","+c2+","+promo+"\n").getBytes("UTF-8"));btOut.flush();}catch(Exception e){runOnUiThread(()->toast("Conexão Bluetooth perdida"));}}).start();}
   void closeBluetooth(){bluetoothGame=false;try{if(socket!=null)socket.close();}catch(Exception ignored){}socket=null;btOut=null;}
   void toast(String x){Toast.makeText(this,x,Toast.LENGTH_LONG).show();}
 
@@ -65,8 +66,9 @@ public class MainActivity extends Activity {
     }
     String sym(String q){String a="kqrbnp";String[] z={"♚","♛","♜","♝","♞","♟"};int i=a.indexOf(Character.toLowerCase(q.charAt(0)));return i<0?q:z[i];}
     public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;float s=getWidth()/8f,top=(getHeight()-getWidth())/2f;int x=(int)(e.getX()/s),r=(int)((e.getY()-top)/s);if(r<0||r>7||x<0||x>7)return true;
-      if(bluetoothGame && white!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(b[r][x]!=null&&isWhite(b[r][x])==white){select(r,x);}else if(legal(sr,sc,r,x,false)){int a=sr,d=sc;move(sr,sc,r,x);sendMove(a,d,r,x);sr=sc=-1;invalidate();}return true;}
-    void remoteMove(int r1,int c1,int r2,int c2){if(bluetoothGame&&white!=myWhite&&legal(r1,c1,r2,c2,false)){move(r1,c1,r2,c2);sr=sc=-1;invalidate();}}
+      if(bluetoothGame && white!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(b[r][x]!=null&&isWhite(b[r][x])==white){select(r,x);}else if(legal(sr,sc,r,x,false)){int a=sr,d=sc;String moving=b[a][d];boolean promotes=moving!=null&&Character.toLowerCase(moving.charAt(0))=='p'&&(r==0||r==7);if(promotes)moveWithPromotionChoice(a,d,r,x);else{move(a,d,r,x,"-");sendMove(a,d,r,x,"-");}sr=sc=-1;invalidate();}return true;}
+    void remoteMove(int r1,int c1,int r2,int c2,String promo){if(bluetoothGame&&white!=myWhite&&legal(r1,c1,r2,c2,false)){move(r1,c1,r2,c2,promo);sr=sc=-1;invalidate();}}
+    void moveWithPromotionChoice(int r1,int c1,int r2,int c2){final boolean side=isWhite(b[r1][c1]);new AlertDialog.Builder(MainActivity.this).setTitle("PROMOÇÃO").setMessage("Escolha a peça:").setItems(new String[]{"♛  Dama","♜  Torre","♝  Bispo","♞  Cavalo"},(d,i)->{String[] pcs={"Q","R","B","N"};String z=pcs[i];if(!side)z=z.toLowerCase();move(r1,c1,r2,c2,z);sendMove(r1,c1,r2,c2,z);invalidate();}).setCancelable(false).show();}
     void select(int r,int c){if(b[r][c]!=null&&isWhite(b[r][c])==white){sr=r;sc=c;invalidate();}}
     boolean isWhite(String q){return Character.isUpperCase(q.charAt(0));}
     boolean inside(int r,int c){return r>=0&&r<8&&c>=0&&c<8;}
@@ -96,12 +98,12 @@ public class MainActivity extends Activity {
     }
     boolean inCheck(boolean side){for(int r=0;r<8;r++)for(int c=0;c<8;c++){String q=b[r][c];if(q!=null&&Character.toLowerCase(q.charAt(0))=='k'&&isWhite(q)==side)return attacked(r,c,!side);}return false;}
     boolean castlePossible(boolean side,boolean kingSide){int r=side?7:0;if(side?(wKm||(kingSide?wRh:wRa)):(bKm||(kingSide?bRh:bRa)))return false;int rook=kingSide?7:0;if(b[r][rook]==null)return false;int step=kingSide?1:-1;for(int c=4+step;c!=rook;c+=step)if(b[r][c]!=null)return false;if(inCheck(side)||attacked(r,4+step,!side)||attacked(r,4+2*step,!side))return false;return true;}
-    void move(int r1,int c1,int r2,int c2){
+    void move(int r1,int c1,int r2,int c2,String promotion){
       String q=b[r1][c1];boolean side=isWhite(q);char t=Character.toLowerCase(q.charAt(0));String captured=b[r2][c2];
       if(t=='p'&&c1!=c2&&captured==null&&r2==epR&&c2==epC)b[r1][c2]=null;
       if(t=='k'&&Math.abs(c2-c1)==2){int rc=c2>c1?7:0,nc=c2>c1?5:3;b[r2][nc]=b[r2][rc];b[r2][rc]=null;}
       b[r2][c2]=q;b[r1][c1]=null;
-      if(t=='p'&&(r2==0||r2==7)){ b[r2][c2]=side?"Q":"q"; final int pr=r2,pc=c2; final boolean ps=side; runOnUiThread(()->new AlertDialog.Builder(MainActivity.this).setTitle("PROMOÇÃO").setMessage("Escolha a peça:").setItems(new String[]{"♛  Dama","♜  Torre","♝  Bispo","♞  Cavalo"},(d,i)->{char[] pcs={'Q','R','B','N'}; char z=pcs[i]; b[pr][pc]=""+(ps?z:Character.toLowerCase(z)); invalidate();}).setCancelable(false).show()); }
+      if(t=='p'&&(r2==0||r2==7)){String z=(promotion==null||promotion.equals("-"))?(side?"Q":"q"):promotion;b[r2][c2]=z;}
       epR=epC=-1;if(t=='p'&&Math.abs(r2-r1)==2){epR=(r1+r2)/2;epC=c1;}
       if(t=='k'){if(side)wKm=true;else bKm=true;} if(t=='r'){if(side&&r1==7&&c1==0)wRa=true;if(side&&r1==7&&c1==7)wRh=true;if(!side&&r1==0&&c1==0)bRa=true;if(!side&&r1==0&&c1==7)bRh=true;}
       white=!white;boolean check=inCheck(white),any=false;
