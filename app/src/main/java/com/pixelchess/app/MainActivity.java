@@ -16,7 +16,7 @@ import java.util.UUID;
 public class MainActivity extends Activity {
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
   static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
-  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut;
+  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10;
   @Override public void onCreate(Bundle b){super.onCreate(b); showMenu();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
@@ -26,14 +26,15 @@ public class MainActivity extends Activity {
     LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER); box.setPadding(40,40,40,40); box.setBackgroundColor(bg);
     TextView logo=title("♜  PIXEL CHESS  ♞",30); box.addView(logo,new LinearLayout.LayoutParams(-1,-2));
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
-    Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->setContentView(new ChessView(this))); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
-    Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.6 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
+    Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->chooseTime(true)); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
+    TextView ver=title("\nMVP 0.7 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
 
   boolean btPermission(){ if(Build.VERSION.SDK_INT>=31 && checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT","android.permission.BLUETOOTH_SCAN"},42);return false;}return true; }
+  void chooseTime(boolean bt){String[] x={"10 minutos","5 minutos","3 minutos"};new AlertDialog.Builder(this).setTitle("RELÓGIO").setItems(x,(d,i)->{selectedMinutes=i==0?10:i==1?5:3;if(bt)bluetoothMenu();else setContentView(new ChessView(this));}).setNegativeButton("CANCELAR",null).show();}
   void bluetoothMenu(){
     if(!btPermission())return; adapter=BluetoothAdapter.getDefaultAdapter(); if(adapter==null){toast("Este aparelho não possui Bluetooth");return;} if(!adapter.isEnabled()){toast("Ative o Bluetooth e tente novamente");return;}
     new AlertDialog.Builder(this).setTitle("Jogar via Bluetooth").setMessage("Os dois celulares precisam estar pareados nas configurações do Android.").setPositiveButton("CRIAR PARTIDA",(d,w)->hostGame()).setNegativeButton("ENTRAR",(d,w)->chooseDevice()).setNeutralButton("CANCELAR",null).show();
@@ -49,10 +50,10 @@ public class MainActivity extends Activity {
 
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
-    boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false; int epR=-1,epC=-1,halfmove=0; HashMap<String,Integer> repetitions=new HashMap<>();
+    boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false; int epR=-1,epC=-1,halfmove=0; HashMap<String,Integer> repetitions=new HashMap<>(); long whiteMs,blackMs,lastTick; ArrayList<String> history=new ArrayList<>(); Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
     final String back="rnbqkbnr";
-    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); reset();}
-    void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;halfmove=0;repetitions.clear();status="BRANCAS JOGAM";recordPosition();invalidate();}
+    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){gameOver=true;status="TEMPO • "+(white?"PRETAS":"BRANCAS")+" VENCEM";}invalidate();clock.postDelayed(ticker,250);}};lastTick=System.currentTimeMillis();clock.post(ticker);}
+    void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;halfmove=0;repetitions.clear();history.clear();whiteMs=blackMs=selectedMinutes*60000L;lastTick=System.currentTimeMillis();status="BRANCAS JOGAM";recordPosition();invalidate();}
     protected void onDraw(Canvas c){
       super.onDraw(c);c.drawColor(bg);float w=getWidth(),s=w/8f,top=(getHeight()-w)/2f;
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
@@ -62,9 +63,14 @@ public class MainActivity extends Activity {
         if(sr>=0&&legal(sr,sc,r,x,true)){p.setColor(0x66000000);c.drawCircle(vx*s+s/2,top+vr*s+s/2,s*.12f,p);}
         String q=b[r][x];if(q!=null){p.setColor(Character.isUpperCase(q.charAt(0))?Color.WHITE:Color.BLACK);c.drawText(sym(q),vx*s+s/2,top+vr*s+s*.72f,p);}
       }
-      p.setTextSize(18*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(status,w/2,Math.max(50,top-35),p);
-      p.setTextSize(12*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.GRAY);c.drawText("PIXEL CHESS • toque numa peça e depois no destino",w/2,Math.min(getHeight()-25,top+w+45),p);
+      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,getResources().getDisplayMetrics().density));p.setColor(Color.argb(95,20,24,28));for(int i=0;i<=8;i++){c.drawLine(i*s,top,i*s,top+w,p);c.drawLine(0,top+i*s,w,top+i*s,p);}p.setStyle(Paint.Style.FILL);
+      p.setTextSize(18*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(status,w/2,Math.max(50,top-68),p);
+      p.setTextSize(15*getResources().getDisplayMetrics().scaledDensity);c.drawText("PRETAS "+clockText(blackMs)+"     BRANCAS "+clockText(whiteMs),w/2,Math.max(72,top-38),p);
+      p.setTextSize(12*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.GRAY);String h=history.isEmpty()?"SEM JOGADAS":historyLine();c.drawText(h,w/2,Math.min(getHeight()-45,top+w+35),p);c.drawText("PIXEL CHESS • toque numa peça e depois no destino",w/2,Math.min(getHeight()-20,top+w+58),p);
     }
+    String clockText(long ms){ms=Math.max(0,ms);long sec=ms/1000;return String.format(Locale.US,"%02d:%02d",sec/60,sec%60);}
+    String square(int r,int c){return ""+(char)('a'+c)+(8-r);}
+    String historyLine(){int from=Math.max(0,history.size()-4);StringBuilder z=new StringBuilder("JOGADAS: ");for(int i=from;i<history.size();i++){if(i>from)z.append("  ");z.append(history.get(i));}return z.toString();}
     String sym(String q){String a="kqrbnp";String[] z={"♚","♛","♜","♝","♞","♟"};int i=a.indexOf(Character.toLowerCase(q.charAt(0)));return i<0?q:z[i];}
     public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;float s=getWidth()/8f,top=(getHeight()-getWidth())/2f;int vx=(int)(e.getX()/s),vr=(int)((e.getY()-top)/s);if(vr<0||vr>7||vx<0||vx>7)return true;boolean flip=bluetoothGame&&!myWhite;int x=flip?7-vx:vx,r=flip?7-vr:vr;if(gameOver){toast("A partida terminou");return true;}
       if(bluetoothGame && white!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(b[r][x]!=null&&isWhite(b[r][x])==white){select(r,x);}else if(legal(sr,sc,r,x,false)){int a=sr,d=sc;String moving=b[a][d];boolean promotes=moving!=null&&Character.toLowerCase(moving.charAt(0))=='p'&&(r==0||r==7);if(promotes)moveWithPromotionChoice(a,d,r,x);else{move(a,d,r,x,"-");sendMove(a,d,r,x,"-");}sr=sc=-1;invalidate();}return true;}
@@ -109,14 +115,14 @@ public class MainActivity extends Activity {
     boolean insufficientMaterial(){ArrayList<Character> pcs=new ArrayList<>();ArrayList<Integer> bishops=new ArrayList<>();for(int r=0;r<8;r++)for(int c=0;c<8;c++){String q=b[r][c];if(q==null)continue;char t=Character.toLowerCase(q.charAt(0));if(t=='k')continue;if(t=='p'||t=='q'||t=='r')return false;pcs.add(t);if(t=='b')bishops.add((r+c)&1);}if(pcs.size()==0)return true;if(pcs.size()==1&&(pcs.get(0)=='b'||pcs.get(0)=='n'))return true;if(pcs.size()>0&&pcs.size()==bishops.size()){int color=bishops.get(0);for(int x:bishops)if(x!=color)return false;return true;}return false;}
     boolean castlePossible(boolean side,boolean kingSide){int r=side?7:0;if(side?(wKm||(kingSide?wRh:wRa)):(bKm||(kingSide?bRh:bRa)))return false;int rook=kingSide?7:0;String rq=b[r][rook];if(rq==null||Character.toLowerCase(rq.charAt(0))!='r'||isWhite(rq)!=side)return false;int step=kingSide?1:-1;for(int c=4+step;c!=rook;c+=step)if(b[r][c]!=null)return false;if(inCheck(side)||attacked(r,4+step,!side)||attacked(r,4+2*step,!side))return false;return true;}
     void move(int r1,int c1,int r2,int c2,String promotion){
-      String q=b[r1][c1];boolean side=isWhite(q);char t=Character.toLowerCase(q.charAt(0));String captured=b[r2][c2];
+      String q=b[r1][c1];String notation=square(r1,c1)+"-"+square(r2,c2);boolean side=isWhite(q);char t=Character.toLowerCase(q.charAt(0));String captured=b[r2][c2];
       if(t=='p'&&c1!=c2&&captured==null&&r2==epR&&c2==epC)b[r1][c2]=null;
       if(t=='k'&&Math.abs(c2-c1)==2){int rc=c2>c1?7:0,nc=c2>c1?5:3;b[r2][nc]=b[r2][rc];b[r2][rc]=null;}
       b[r2][c2]=q;b[r1][c1]=null;
-      if(t=='p'&&(r2==0||r2==7)){String z=(promotion==null||promotion.equals("-"))?(side?"Q":"q"):promotion;b[r2][c2]=z;}
+      if(t=='p'&&(r2==0||r2==7)){String z=(promotion==null||promotion.equals("-"))?(side?"Q":"q"):promotion;b[r2][c2]=z;notation+="="+Character.toUpperCase(z.charAt(0));}
       epR=epC=-1;if(t=='p'&&Math.abs(r2-r1)==2){epR=(r1+r2)/2;epC=c1;}
       if(t=='k'){if(side)wKm=true;else bKm=true;} if(t=='r'){if(side&&r1==7&&c1==0)wRa=true;if(side&&r1==7&&c1==7)wRh=true;if(!side&&r1==0&&c1==0)bRa=true;if(!side&&r1==0&&c1==7)bRh=true;} if(captured!=null&&Character.toLowerCase(captured.charAt(0))=='r'){if(r2==7&&c2==0)wRa=true;if(r2==7&&c2==7)wRh=true;if(r2==0&&c2==0)bRa=true;if(r2==0&&c2==7)bRh=true;}
-      if(t=='p'||captured!=null)halfmove=0;else halfmove++;white=!white;int repeated=recordPosition();boolean check=inCheck(white),any=false;
+      history.add((history.size()/2+1)+(side?".":"...")+notation);if(t=='p'||captured!=null)halfmove=0;else halfmove++;white=!white;lastTick=System.currentTimeMillis();int repeated=recordPosition();boolean check=inCheck(white),any=false;
       outer:for(int a=0;a<8;a++)for(int d=0;d<8;d++){String z=b[a][d];if(z==null||isWhite(z)!=white)continue;for(int e=0;e<8;e++)for(int f=0;f<8;f++)if(legal(a,d,e,f,false)){any=true;break outer;}}
       if(!any){gameOver=true;status=check?"XEQUE-MATE • "+(white?"PRETAS":"BRANCAS")+" VENCEM":"EMPATE • AFOGAMENTO";}else if(insufficientMaterial()){gameOver=true;status="EMPATE • MATERIAL INSUFICIENTE";}else if(halfmove>=100){gameOver=true;status="EMPATE • REGRA DOS 50 LANCES";}else if(repeated>=3){gameOver=true;status="EMPATE • REPETIÇÃO TRIPLA";}else status=(white?"BRANCAS":"PRETAS")+" JOGAM"+(check?" • XEQUE!":"");
     }
