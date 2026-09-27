@@ -28,7 +28,7 @@ public class MainActivity extends Activity {
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.8 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    TextView ver=title("\nMVP 0.9 • Bluetooth beta",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
@@ -59,6 +59,11 @@ public class MainActivity extends Activity {
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
       boolean flip=bluetoothGame&&!myWhite;
       for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;p.setColor(((r+x)&1)==0?cream:green);c.drawRect(vx*s,top+vr*s,(vx+1)*s,top+(vr+1)*s,p);
+        String squarePiece=b[r][x];
+        if(squarePiece!=null&&Character.toLowerCase(squarePiece.charAt(0))=='k'&&inCheck(isWhite(squarePiece))){
+          p.setColor(gameOver?Color.rgb(198,40,40):Color.rgb(245,124,0));
+          c.drawRect(vx*s,top+vr*s,(vx+1)*s,top+(vr+1)*s,p);
+        }
         if(r==sr&&x==sc){p.setColor(0x88FFD54F);c.drawRect(vx*s,top+vr*s,(vx+1)*s,top+(vr+1)*s,p);}
         if(sr>=0&&legal(sr,sc,r,x,true)){p.setColor(0x66000000);c.drawCircle(vx*s+s/2,top+vr*s+s/2,s*.12f,p);}
         String q=b[r][x];if(q!=null){p.setColor(Character.isUpperCase(q.charAt(0))?Color.WHITE:Color.BLACK);c.drawText(sym(q),vx*s+s/2,top+vr*s+s*.72f,p);}
