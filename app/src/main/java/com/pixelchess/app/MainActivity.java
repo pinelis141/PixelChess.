@@ -27,11 +27,13 @@ public class MainActivity extends Activity {
     TextView logo=title("♜  PIXEL CHESS  ♞",30); box.addView(logo,new LinearLayout.LayoutParams(-1,-2));
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
-    Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));\n    Button skin=button("▣ Skin: "+(selectedSkin==0?"Tradicional":"Floresta Ancestral")); skin.setOnClickListener(v->chooseSkin()); box.addView(skin,new LinearLayout.LayoutParams(-1,-2));
+    Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
+    Button skin=button("▣ Skin: "+(selectedSkin==0?"Tradicional":"Floresta Ancestral")); skin.setOnClickListener(v->chooseSkin()); box.addView(skin,new LinearLayout.LayoutParams(-1,-2));
     TextView ver=title("\nMVP 0.13 • Pixel pieces",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
-  void chooseSkin(){String[] x={"Tradicional","Floresta Ancestral"};new AlertDialog.Builder(this).setTitle("SKIN DO TABULEIRO").setSingleChoiceItems(x,selectedSkin,(d,i)->{selectedSkin=i;getPreferences(MODE_PRIVATE).edit().putInt("skin",i).apply();d.dismiss();showMenu();}).setNegativeButton("CANCELAR",null).show();}\n  @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
+  void chooseSkin(){String[] x={"Tradicional","Floresta Ancestral"};new AlertDialog.Builder(this).setTitle("SKIN DO TABULEIRO").setSingleChoiceItems(x,selectedSkin,(d,i)->{selectedSkin=i;getPreferences(MODE_PRIVATE).edit().putInt("skin",i).apply();d.dismiss();showMenu();}).setNegativeButton("CANCELAR",null).show();}
+  @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
 
   boolean btPermission(){ if(Build.VERSION.SDK_INT>=31 && checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT","android.permission.BLUETOOTH_SCAN"},42);return false;}return true; }
   void chooseTime(boolean bt){String[] x={"10 minutos","5 minutos","3 minutos"};new AlertDialog.Builder(this).setTitle("RELÓGIO").setItems(x,(d,i)->{selectedMinutes=i==0?10:i==1?5:3;if(bt)hostGame();else setContentView(new ChessView(this));}).setNegativeButton("CANCELAR",null).show();}
