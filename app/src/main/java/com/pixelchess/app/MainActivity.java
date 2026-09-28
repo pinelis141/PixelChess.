@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
     Button themes=button("◆ Cenário: "+themeName()); themes.setOnClickListener(v->chooseTheme()); box.addView(themes,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.16 • Forest Layers",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    TextView ver=title("\nMVP 0.17 • Pixel Forest",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
     }
   }
   ThemeAssets themeAssets(){
-    if(selectedTheme.equals("forest"))return new ThemeAssets(R.drawable.forest_scene_bg,R.drawable.forest_ground_ring,0,R.drawable.stone_board_pixel,R.drawable.forest_clock_panel);
+    if(selectedTheme.equals("forest"))return new ThemeAssets(0,0,0,R.drawable.stone_board_pixel,R.drawable.forest_clock_panel);
     return new ThemeAssets(0,0,0,R.drawable.stone_board_pixel,0);
   }
 
@@ -119,8 +119,50 @@ public class MainActivity extends Activity {
       p.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(55,59,61));c.drawText("◆  PIXEL CHESS  ◆",getWidth()/2f,Math.min(getHeight()-20*den,top+w+140*den),p);
     }
     void drawThemeBackdrop(Canvas c,float left,float top,float board,float den){
-      if(themeBackgroundBitmap==null){c.drawColor(selectedTheme.equals("forest")?Color.rgb(12,31,22):bg);return;}
-      drawCenterCrop(c,themeBackgroundBitmap,new RectF(0,0,getWidth(),getHeight()),themePaint);
+      if(!selectedTheme.equals("forest")){
+        if(themeBackgroundBitmap==null)c.drawColor(bg);else drawCenterCrop(c,themeBackgroundBitmap,new RectF(0,0,getWidth(),getHeight()),themePaint);
+        return;
+      }
+      if(themeBackgroundBitmap!=null){drawCenterCrop(c,themeBackgroundBitmap,new RectF(0,0,getWidth(),getHeight()),themePaint);return;}
+      drawPixelForest(c,left,top,board,den);
+    }
+    void drawPixelForest(Canvas c,float left,float top,float board,float den){
+      c.drawColor(Color.rgb(13,39,27));
+      int px=Math.max(3,Math.round(3*den));
+      p.setStyle(Paint.Style.FILL);
+      // pixel-art ground path / clearing
+      p.setColor(Color.rgb(65,77,43));
+      c.drawRect(0,0,getWidth(),getHeight(),p);
+      p.setColor(Color.rgb(91,82,48));
+      float pathW=Math.max(board*.34f,90*den),cx=getWidth()/2f;
+      c.drawRect(cx-pathW/2f,0,cx+pathW/2f,getHeight(),p);
+      // deterministic pine silhouettes along both sides; blocky on purpose
+      int rows=Math.max(8,(int)(getHeight()/(82*den)));
+      for(int side=0;side<2;side++)for(int i=0;i<rows;i++){
+        float y=i*82*den-18*den;
+        float x=side==0?(18+(i%3)*17)*den:getWidth()-(18+(i%3)*17)*den;
+        drawPixelPine(c,x,y,(i%2==0?1f:.84f)*den,px);
+      }
+      // small rocks / flowers in the clearing
+      for(int i=0;i<24;i++){
+        float x=((i*83)%Math.max(1,getWidth()-20*px))+10*px;
+        float y=((i*137)%Math.max(1,getHeight()-20*px))+10*px;
+        if(x>left-26*den&&x<left+board+26*den&&y>top-26*den&&y<top+board+26*den)continue;
+        p.setColor(i%4==0?Color.rgb(151,154,126):Color.rgb(45,67,43));
+        c.drawRect(x,y,x+2*px,y+2*px,p);
+      }
+    }
+    void drawPixelPine(Canvas c,float cx,float cy,float scale,int px){
+      p.setStyle(Paint.Style.FILL);
+      int u=Math.max(px,Math.round(4*scale));
+      p.setColor(Color.rgb(71,53,35));c.drawRect(cx-u,cy+13*u,cx+u,cy+18*u,p);
+      p.setColor(Color.rgb(10,44,31));
+      c.drawRect(cx-4*u,cy+7*u,cx+4*u,cy+15*u,p);
+      c.drawRect(cx-5*u,cy+9*u,cx+5*u,cy+13*u,p);
+      p.setColor(Color.rgb(19,68,43));
+      c.drawRect(cx-3*u,cy+3*u,cx+3*u,cy+10*u,p);
+      c.drawRect(cx-4*u,cy+6*u,cx+4*u,cy+9*u,p);
+      p.setColor(Color.rgb(38,91,53));c.drawRect(cx-2*u,cy,cx+2*u,cy+6*u,p);
     }
     void drawCenterCrop(Canvas c,Bitmap bmp,RectF dst,Paint paint){
       float srcRatio=bmp.getWidth()/(float)bmp.getHeight(),dstRatio=dst.width()/dst.height();
@@ -133,16 +175,23 @@ public class MainActivity extends Activity {
       c.drawBitmap(bmp,src,dst,paint);
     }
     void drawThemeGround(Canvas c,float left,float top,float board,float den){
-      float framePad=board*.045f,groundPad=board*.115f;
+      float framePad=board*.045f,groundPad=board*.105f;
       RectF ground=new RectF(left-groundPad,top-groundPad,left+board+groundPad,top+board+groundPad);
       if(themeGroundBitmap!=null){themePaint.setAlpha(255);c.drawBitmap(themeGroundBitmap,null,ground,themePaint);return;}
-      p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(205,73,88,48));c.drawRoundRect(ground,12*den,12*den,p);
-      p.setColor(Color.argb(155,109,91,51));
-      for(int i=0;i<28;i++){
-        float gx=ground.left+((i*67)%Math.max(1,(int)ground.width()));
-        float gy=ground.top+((i*41)%Math.max(1,(int)ground.height()));
-        if(gx>left-framePad&&gx<left+board+framePad&&gy>top-framePad&&gy<top+board+framePad)continue;
-        c.drawCircle(gx,gy,(i%3==0?1.8f:1.1f)*den,p);
+      // Real ring: draw only the strips OUTSIDE the stone frame, never a solid rectangle.
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(190,67,79,43));
+      float il=left-framePad,it=top-framePad,ir=left+board+framePad,ib=top+board+framePad;
+      c.drawRect(ground.left,ground.top,ground.right,it,p);
+      c.drawRect(ground.left,ib,ground.right,ground.bottom,p);
+      c.drawRect(ground.left,it,il,ib,p);
+      c.drawRect(ir,it,ground.right,ib,p);
+      p.setColor(Color.rgb(42,66,39));
+      int dot=Math.max(2,Math.round(2*den));
+      for(int i=0;i<30;i++){
+        float gx=ground.left+((i*53)%Math.max(1,(int)ground.width()));
+        float gy=ground.top+((i*79)%Math.max(1,(int)ground.height()));
+        if(gx>il&&gx<ir&&gy>it&&gy<ib)continue;
+        c.drawRect(gx,gy,gx+dot,gy+dot,p);
       }
     }
     void drawThemeFrame(Canvas c,float left,float top,float board,float den){
