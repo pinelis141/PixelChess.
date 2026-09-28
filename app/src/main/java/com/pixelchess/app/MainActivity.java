@@ -87,36 +87,18 @@ public class MainActivity extends Activity {
       p.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.DKGRAY);c.drawText("PIXEL CHESS",w/2,Math.min(getHeight()-20*den,top+w+134*den),p);
     }
     void loadPieceSprites(){
-      pieceSprites.put('P',cleanSprite(R.drawable.w_pawn));
-      pieceSprites.put('R',cleanSprite(R.drawable.w_rook));
-      pieceSprites.put('N',cleanSprite(R.drawable.w_knight));
-      pieceSprites.put('B',cleanSprite(R.drawable.w_bishop));
-      pieceSprites.put('Q',cleanSprite(R.drawable.w_queen));
-      pieceSprites.put('K',cleanSprite(R.drawable.w_king));
-      pieceSprites.put('p',cleanSprite(R.drawable.b_pawn));
-      pieceSprites.put('r',cleanSprite(R.drawable.b_rook));
-      pieceSprites.put('n',cleanSprite(R.drawable.b_knight));
-      pieceSprites.put('b',cleanSprite(R.drawable.b_bishop));
-      pieceSprites.put('q',cleanSprite(R.drawable.b_queen));
-      pieceSprites.put('k',cleanSprite(R.drawable.b_king));
-    }
-    Bitmap cleanSprite(int resId){
-      Bitmap src=BitmapFactory.decodeResource(getResources(),resId);
-      if(src==null)return null;
-      Bitmap out=src.copy(Bitmap.Config.ARGB_8888,true);
-      int w=out.getWidth(),h=out.getHeight();
-      int[] px=new int[w*h];out.getPixels(px,0,w,0,0,w,h);
-      boolean[] keep=new boolean[w*h];ArrayDeque<Integer> queue=new ArrayDeque<>();
-      for(int x=0;x<w;x++){queue.add(x);queue.add((h-1)*w+x);}
-      for(int y=1;y<h-1;y++){queue.add(y*w);queue.add(y*w+w-1);}
-      while(!queue.isEmpty()){
-        int i=queue.removeFirst();if(i<0||i>=px.length||keep[i])continue;
-        int col=px[i],a=Color.alpha(col),r=Color.red(col),g=Color.green(col),b=Color.blue(col);
-        boolean background=a<18||(r>235&&g>235&&b>235)||(r<28&&g<28&&b<28);
-        if(!background)continue;keep[i]=true;px[i]=Color.TRANSPARENT;
-        int x=i%w,y=i/w;if(x>0)queue.add(i-1);if(x<w-1)queue.add(i+1);if(y>0)queue.add(i-w);if(y<h-1)queue.add(i+w);
-      }
-      out.setPixels(px,0,w,0,0,w,h);return out;
+      pieceSprites.put('P',BitmapFactory.decodeResource(getResources(),R.drawable.w_pawn));
+      pieceSprites.put('R',BitmapFactory.decodeResource(getResources(),R.drawable.w_rook));
+      pieceSprites.put('N',BitmapFactory.decodeResource(getResources(),R.drawable.w_knight));
+      pieceSprites.put('B',BitmapFactory.decodeResource(getResources(),R.drawable.w_bishop));
+      pieceSprites.put('Q',BitmapFactory.decodeResource(getResources(),R.drawable.w_queen));
+      pieceSprites.put('K',BitmapFactory.decodeResource(getResources(),R.drawable.w_king));
+      pieceSprites.put('p',BitmapFactory.decodeResource(getResources(),R.drawable.b_pawn));
+      pieceSprites.put('r',BitmapFactory.decodeResource(getResources(),R.drawable.b_rook));
+      pieceSprites.put('n',BitmapFactory.decodeResource(getResources(),R.drawable.b_knight));
+      pieceSprites.put('b',BitmapFactory.decodeResource(getResources(),R.drawable.b_bishop));
+      pieceSprites.put('q',BitmapFactory.decodeResource(getResources(),R.drawable.b_queen));
+      pieceSprites.put('k',BitmapFactory.decodeResource(getResources(),R.drawable.b_king));
     }
     void drawPieceSprite(Canvas c,String q,float left,float top,float size){
       Bitmap bmp=pieceSprites.get(q.charAt(0));
