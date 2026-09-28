@@ -16,8 +16,8 @@ import java.util.UUID;
 public class MainActivity extends Activity {
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
   static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
-  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10; int selectedSkin=0; final Object btWriteLock=new Object();
-  @Override public void onCreate(Bundle b){super.onCreate(b); selectedSkin=getPreferences(MODE_PRIVATE).getInt("skin",0); showMenu();}
+  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10; BoardTheme selectedTheme=BoardThemes.CLASSIC; final Object btWriteLock=new Object();
+  @Override public void onCreate(Bundle b){super.onCreate(b); SharedPreferences prefs=getPreferences(MODE_PRIVATE); selectedTheme=BoardThemes.find(prefs.getString("theme_id",BoardThemes.fromLegacyIndex(prefs.getInt("skin",0)).id)); showMenu();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
   Button button(String s){ Button b=new Button(this); b.setText(s); b.setTextSize(18); b.setAllCaps(false); b.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return b; }
@@ -28,11 +28,19 @@ public class MainActivity extends Activity {
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    Button skin=button("▣ Skin: "+(selectedSkin==0?"Tradicional":"Floresta Ancestral")); skin.setOnClickListener(v->chooseSkin()); box.addView(skin,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.13 • Pixel pieces",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    Button skin=button("▣ Skin: "+selectedTheme.name); skin.setOnClickListener(v->chooseSkin()); box.addView(skin,new LinearLayout.LayoutParams(-1,-2));
+    TextView ver=title("\nMVP "+BuildConfig.VERSION_NAME+" • Temas",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
-  void chooseSkin(){String[] x={"Tradicional","Floresta Ancestral"};new AlertDialog.Builder(this).setTitle("SKIN DO TABULEIRO").setSingleChoiceItems(x,selectedSkin,(d,i)->{selectedSkin=i;getPreferences(MODE_PRIVATE).edit().putInt("skin",i).apply();d.dismiss();showMenu();}).setNegativeButton("CANCELAR",null).show();}
+  void chooseSkin(){
+    String[] names=new String[BoardThemes.ALL.size()]; int checked=0;
+    for(int i=0;i<names.length;i++){BoardTheme theme=BoardThemes.ALL.get(i);names[i]=theme.name;if(theme.id.equals(selectedTheme.id))checked=i;}
+    new AlertDialog.Builder(this).setTitle("SKIN DO TABULEIRO").setSingleChoiceItems(names,checked,(d,i)->{
+      selectedTheme=BoardThemes.ALL.get(i);
+      getPreferences(MODE_PRIVATE).edit().putString("theme_id",selectedTheme.id).apply();
+      d.dismiss();showMenu();
+    }).setNegativeButton("CANCELAR",null).show();
+  }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
 
   boolean btPermission(){ if(Build.VERSION.SDK_INT>=31 && checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT","android.permission.BLUETOOTH_SCAN"},42);return false;}return true; }
@@ -55,28 +63,18 @@ public class MainActivity extends Activity {
 
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
-    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); Bitmap boardBitmap,frameBitmap; Paint spritePaint=new Paint(),boardPaint=new Paint(); int skin=selectedSkin;
+    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); final BoardThemeRenderer themeRenderer; Paint spritePaint=new Paint();
     boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false,flagSent=false; int epR=-1,epC=-1,halfmove=0; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece; long animStart; final long ANIM_MS=200; HashMap<String,Integer> repetitions=new HashMap<>(); long whiteMs,blackMs,lastTick,lastSyncSent; ArrayList<String> history=new ArrayList<>(); Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
     final String back="rnbqkbnr";
-    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); boardPaint.setAntiAlias(false); boardPaint.setFilterBitmap(false); boardPaint.setDither(false); loadPieceSprites(); loadBoardBitmap(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
+    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); themeRenderer=new BoardThemeRenderer(getResources(),selectedTheme); loadPieceSprites(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
+    @Override protected void onDetachedFromWindow(){clock.removeCallbacks(ticker);super.onDetachedFromWindow();}
     void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;flagSent=false;halfmove=0;repetitions.clear();history.clear();whiteMs=blackMs=selectedMinutes*60000L;lastTick=System.currentTimeMillis();lastSyncSent=lastTick;status="BRANCAS JOGAM";recordPosition();invalidate();}
     protected void onDraw(Canvas c){
       super.onDraw(c);c.drawColor(bg);float den0=getResources().getDisplayMetrics().density,gutter=18*den0,w=getWidth()-gutter*2,s=w/8f,left0=gutter;float top=Math.max(150*den0,(getHeight()-w)/2f-30*den0);
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
       boolean flip=bluetoothGame&&!myWhite;
-      if(skin==1)drawForestBackdrop(c,left0,top,w,den0);
-      if(boardBitmap!=null)c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),boardPaint);
-      else{p.setColor(Color.rgb(48,67,59));c.drawRect(left0,top,left0+w,top+w,p);}
-      // Forest art is intentionally softened a little so the pieces remain the focal point.
-      if(skin==1){
-        p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(14,0,0,0));
-        c.drawRect(left0,top,left0+w,top+w,p);
-      }
-      // Keep the original stone board glaze only on the traditional skin.
-      if(skin==0){
-        p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(24,18,38,31));
-        for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int rr=flip?7-vr:vr,xx=flip?7-vx:vx;if(((rr+xx)&1)==1)c.drawRect(left0+vx*s,top+vr*s,left0+(vx+1)*s,top+(vr+1)*s,p);}
-      }
+      themeRenderer.draw(c,left0,top,w,den0);
+      if(themeRenderer.animated() && isShown())postInvalidateDelayed(50);
       for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
         String squarePiece=b[r][x];
         if(squarePiece!=null&&Character.toLowerCase(squarePiece.charAt(0))=='k'&&inCheck(isWhite(squarePiece))){
@@ -109,44 +107,6 @@ public class MainActivity extends Activity {
       p.setStyle(Paint.Style.FILL);p.setColor(active?Color.rgb(210,171,82):Color.rgb(73,79,79));c.drawRect(l,t,l+3*den,t+ph,p);
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?Color.rgb(226,211,173):Color.rgb(154,158,156));c.drawText(name,cx,t+18*den,p);
       p.setTextSize(24*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?cream:Color.rgb(196,194,184));c.drawText(time,cx,t+47*den,p);
-    }
-    void loadBoardBitmap(){
-      if(skin==1){
-        boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.forest_board);
-        frameBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.forest_frame);
-      }else{
-        boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.stone_board_pixel);
-        frameBitmap=null;
-      }
-    }
-    void drawForestBackdrop(Canvas c,float left,float top,float size,float den){
-      // Keep the decorative frame outside the playable 8x8 area. The board is drawn after
-      // this method, so any inward-facing leaves/roots are safely hidden under the board.
-      float available=Math.max(0f,left-3f*den);
-      float margin=Math.min(14f*den,available);
-      float pulse=(float)(0.5+0.5*Math.sin(System.currentTimeMillis()/760.0));
-
-      // Soft lateral illumination only — no bright rectangle around the chessboard.
-      float glowX=margin*.72f;
-      float y1=top+size*.12f,y2=top+size*.88f;
-      p.setStyle(Paint.Style.STROKE);
-      p.setStrokeCap(Paint.Cap.ROUND);
-      p.setStrokeWidth(Math.max(3f,4.5f*den));
-      p.setColor(Color.argb((int)(12+16*pulse),128,166,78));
-      c.drawLine(left-glowX, y1, left-glowX, y2, p);
-      c.drawLine(left+size+glowX, y1, left+size+glowX, y2, p);
-      p.setStrokeWidth(Math.max(1f,1.5f*den));
-      p.setColor(Color.argb((int)(18+20*pulse),235,205,92));
-      c.drawLine(left-glowX, top+size*.20f, left-glowX, top+size*.80f, p);
-      c.drawLine(left+size+glowX, top+size*.20f, left+size+glowX, top+size*.80f, p);
-      p.setStrokeCap(Paint.Cap.BUTT);
-      p.setStyle(Paint.Style.FILL);
-
-      if(frameBitmap!=null){
-        RectF dst=new RectF(left-margin,top-margin,left+size+margin,top+size+margin);
-        c.drawBitmap(frameBitmap,null,dst,boardPaint);
-      }
-      postInvalidateDelayed(50);
     }
     void drawGoldSquare(Canvas c,float left,float top,float size,boolean selected){
       p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(112,222,158,35));c.drawRect(left,top,left+size,top+size,p);
@@ -212,7 +172,7 @@ public class MainActivity extends Activity {
     String[] pixelPattern(char t){switch(Character.toLowerCase(t)){case 'p':return new String[]{"...##...","..####..","..####..","...##...","..####..",".######.","########"};case 'r':return new String[]{"##.##.##","########",".######.","..####..","..####..",".######.","########"};case 'n':return new String[]{"...###..","..#####.",".###.##.",".######.","..#####.","..####..",".######.","########"};case 'b':return new String[]{"...##...","..####..","...##...","..####..",".######.","..####..",".######.","########"};case 'q':return new String[]{"#..##..#",".######.","..####..",".######.","..####..",".######.","########","########"};default:return new String[]{"...##...",".#.##.#.",".######.","..####..",".######.","..####..",".######.","########"};}}
     void drawPixelPiece(Canvas c,String q,float left,float top,float size){String[] pat=pixelPattern(q.charAt(0));float cell=size/10f,ox=left+cell,oy=top+(size-pat.length*cell)/2f;boolean whitePiece=Character.isUpperCase(q.charAt(0));p.setStyle(Paint.Style.FILL);if(whitePiece){p.setColor(Color.rgb(35,38,40));for(int r=0;r<pat.length;r++)for(int x=0;x<pat[r].length();x++)if(pat[r].charAt(x)=='#')for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++)if(Math.abs(dx)+Math.abs(dy)==1)c.drawRect(ox+(x+dx)*cell,oy+(r+dy)*cell,ox+(x+dx+1)*cell,oy+(r+dy+1)*cell,p);}p.setColor(whitePiece?Color.rgb(248,245,232):Color.rgb(25,28,31));for(int r=0;r<pat.length;r++)for(int x=0;x<pat[r].length();x++)if(pat[r].charAt(x)=='#')c.drawRect(ox+x*cell,oy+r*cell,ox+(x+1)*cell,oy+(r+1)*cell,p);}
     void startMoveAnimation(String q,int r1,int c1,int r2,int c2){animPiece=q;animR1=r1;animC1=c1;animR2=r2;animC2=c2;animStart=System.currentTimeMillis();animating=true;postInvalidateOnAnimation();}
-    public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;float den=getResources().getDisplayMetrics().density,gutter=18*den,w=getWidth()-gutter*2,s=w/8f,top=Math.max(150*den,(getHeight()-w)/2f-30*den);int vx=(int)((e.getX()-gutter)/s),vr=(int)((e.getY()-top)/s);if(vr<0||vr>7||vx<0||vx>7)return true;boolean flip=bluetoothGame&&!myWhite;int x=flip?7-vx:vx,r=flip?7-vr:vr;if(gameOver){toast("A partida terminou");return true;}
+    public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;float den=getResources().getDisplayMetrics().density,gutter=18*den,w=getWidth()-gutter*2,s=w/8f,top=Math.max(150*den,(getHeight()-w)/2f-30*den);if(e.getX()<gutter||e.getX()>=gutter+w||e.getY()<top||e.getY()>=top+w)return true;int vx=(int)((e.getX()-gutter)/s),vr=(int)((e.getY()-top)/s);if(vr<0||vr>7||vx<0||vx>7)return true;boolean flip=bluetoothGame&&!myWhite;int x=flip?7-vx:vx,r=flip?7-vr:vr;if(gameOver){toast("A partida terminou");return true;}
       if(bluetoothGame && white!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(b[r][x]!=null&&isWhite(b[r][x])==white){select(r,x);}else if(legal(sr,sc,r,x,false)){int a=sr,d=sc;String moving=b[a][d];boolean promotes=moving!=null&&Character.toLowerCase(moving.charAt(0))=='p'&&(r==0||r==7);if(promotes)moveWithPromotionChoice(a,d,r,x);else{move(a,d,r,x,"-");sendMove(a,d,r,x,"-");}sr=sc=-1;invalidate();}return true;}
     void remoteMove(int r1,int c1,int r2,int c2,String promo,long wm,long bm){if(bluetoothGame&&white!=myWhite&&legal(r1,c1,r2,c2,false)){move(r1,c1,r2,c2,promo);whiteMs=Math.max(0,wm);blackMs=Math.max(0,bm);lastTick=System.currentTimeMillis();sr=sc=-1;if(!gameOver&&white==myWhite)vibrateTurn();invalidate();}}
     void applyClockSync(long wm,long bm,boolean turn){if(!bluetoothGame||myWhite)return;whiteMs=Math.max(0,wm);blackMs=Math.max(0,bm);white=turn;lastTick=System.currentTimeMillis();invalidate();}
@@ -271,3 +231,4 @@ public class MainActivity extends Activity {
     }
   }
 }
+
