@@ -67,6 +67,11 @@ public class MainActivity extends Activity {
       if(skin==1)drawForestBackdrop(c,left0,top,w,den0);
       if(boardBitmap!=null)c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),boardPaint);
       else{p.setColor(Color.rgb(48,67,59));c.drawRect(left0,top,left0+w,top+w,p);}
+      // Forest art is intentionally softened a little so the pieces remain the focal point.
+      if(skin==1){
+        p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(14,0,0,0));
+        c.drawRect(left0,top,left0+w,top+w,p);
+      }
       // Keep the original stone board glaze only on the traditional skin.
       if(skin==0){
         p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(24,18,38,31));
@@ -115,16 +120,28 @@ public class MainActivity extends Activity {
       }
     }
     void drawForestBackdrop(Canvas c,float left,float top,float size,float den){
-      float margin=Math.min(Math.max(10f*den,14f*den),Math.max(0f,left-2f*den));
-      float pulse=(float)(0.5+0.5*Math.sin(System.currentTimeMillis()/700.0));
+      // Keep the decorative frame outside the playable 8x8 area. The board is drawn after
+      // this method, so any inward-facing leaves/roots are safely hidden under the board.
+      float available=Math.max(0f,left-3f*den);
+      float margin=Math.min(14f*den,available);
+      float pulse=(float)(0.5+0.5*Math.sin(System.currentTimeMillis()/760.0));
+
+      // Soft lateral illumination only — no bright rectangle around the chessboard.
+      float glowX=margin*.72f;
+      float y1=top+size*.12f,y2=top+size*.88f;
       p.setStyle(Paint.Style.STROKE);
-      p.setStrokeWidth(Math.max(2f,3f*den));
-      p.setColor(Color.argb((int)(28+34*pulse),218,184,72));
-      c.drawRect(left-margin*.68f,top-margin*.68f,left+size+margin*.68f,top+size+margin*.68f,p);
-      p.setStrokeWidth(Math.max(3f,5f*den));
-      p.setColor(Color.argb((int)(18+22*pulse),105,145,68));
-      c.drawRect(left-margin*.90f,top-margin*.90f,left+size+margin*.90f,top+size+margin*.90f,p);
+      p.setStrokeCap(Paint.Cap.ROUND);
+      p.setStrokeWidth(Math.max(3f,4.5f*den));
+      p.setColor(Color.argb((int)(12+16*pulse),128,166,78));
+      c.drawLine(left-glowX, y1, left-glowX, y2, p);
+      c.drawLine(left+size+glowX, y1, left+size+glowX, y2, p);
+      p.setStrokeWidth(Math.max(1f,1.5f*den));
+      p.setColor(Color.argb((int)(18+20*pulse),235,205,92));
+      c.drawLine(left-glowX, top+size*.20f, left-glowX, top+size*.80f, p);
+      c.drawLine(left+size+glowX, top+size*.20f, left+size+glowX, top+size*.80f, p);
+      p.setStrokeCap(Paint.Cap.BUTT);
       p.setStyle(Paint.Style.FILL);
+
       if(frameBitmap!=null){
         RectF dst=new RectF(left-margin,top-margin,left+size+margin,top+size+margin);
         c.drawBitmap(frameBitmap,null,dst,boardPaint);
