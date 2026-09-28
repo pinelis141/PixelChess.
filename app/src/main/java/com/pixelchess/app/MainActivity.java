@@ -70,7 +70,7 @@ public class MainActivity extends Activity {
     ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); boardPaint.setAntiAlias(false); boardPaint.setFilterBitmap(false); boardPaint.setDither(false); loadPieceSprites(); loadBoardBitmap(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
     void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;flagSent=false;halfmove=0;repetitions.clear();history.clear();whiteMs=blackMs=selectedMinutes*60000L;lastTick=System.currentTimeMillis();lastSyncSent=lastTick;status="BRANCAS JOGAM";recordPosition();invalidate();}
     protected void onDraw(Canvas c){
-      super.onDraw(c);c.drawColor(bg);float den0=getResources().getDisplayMetrics().density,gutter=18*den0,w=getWidth()-gutter*2,s=w/8f,left0=gutter;float top=Math.max(150*den0,(getHeight()-w)/2f-30*den0);
+      super.onDraw(c);float den0=getResources().getDisplayMetrics().density,gutter=18*den0,w=getWidth()-gutter*2,s=w/8f,left0=gutter;float top=Math.max(150*den0,(getHeight()-w)/2f-30*den0);if(selectedTheme.equals("forest"))drawForestBackdrop(c,left0,top,w,den0);else c.drawColor(bg);
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
       boolean flip=bluetoothGame&&!myWhite;
       if(boardBitmap!=null)c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),boardPaint);
@@ -102,6 +102,22 @@ public class MainActivity extends Activity {
       drawClockPanel(c,w/2,top+w+58*den,bottomName,clockText(bottomMs),bottomActive,den);
       p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(118,121,119));String h=history.isEmpty()?"JOGADAS  ·  nenhuma":historyLine().replace("JOGADAS:","JOGADAS  ·");c.drawText(h,w/2,Math.min(getHeight()-48*den,top+w+112*den),p);
       p.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(55,59,61));c.drawText("◆  PIXEL CHESS  ◆",w/2,Math.min(getHeight()-20*den,top+w+140*den),p);
+    }
+    void drawForestBackdrop(Canvas c,float left,float top,float board,float den){
+      c.drawColor(Color.rgb(18,31,25));
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(Color.rgb(31,48,35));c.drawRect(0,0,getWidth(),getHeight(),p);
+      p.setColor(Color.rgb(44,58,39));c.drawOval(new RectF(-board*.15f,top-board*.18f,getWidth()+board*.15f,top+board*1.22f),p);
+      p.setColor(Color.argb(80,10,18,13));c.drawRect(left-5*den,top-5*den,left+board+5*den,top+board+5*den,p);
+      float[][] trees={{.04f,.10f,.82f},{.17f,.03f,.62f},{.82f,.04f,.67f},{.96f,.12f,.80f},{.03f,.72f,.68f},{.97f,.70f,.72f}};
+      for(float[] t:trees)drawPine(c,getWidth()*t[0],top+board*t[1],64*den*t[2]);
+      p.setColor(Color.rgb(72,82,53));for(int i=0;i<9;i++){float x=(i*73%Math.max(1,getWidth()-20))+10,y=(i%2==0?top-18*den:top+board+20*den);c.drawCircle(x,y,3*den,p);}
+    }
+    void drawPine(Canvas c,float cx,float base,float size){
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(79,55,35));c.drawRect(cx-size*.07f,base-size*.08f,cx+size*.07f,base+size*.22f,p);
+      int[] greens={Color.rgb(30,62,42),Color.rgb(37,76,49),Color.rgb(49,91,55)};
+      for(int i=0;i<3;i++){float y=base-size*(.72f-i*.20f),half=size*(.28f+i*.08f);Path q=new Path();q.moveTo(cx,y-size*.34f);q.lineTo(cx-half,y+size*.24f);q.lineTo(cx+half,y+size*.24f);q.close();p.setColor(greens[i]);c.drawPath(q,p);}
+      p.setColor(Color.rgb(88,101,58));c.drawCircle(cx-size*.24f,base+size*.17f,size*.10f,p);c.drawCircle(cx+size*.20f,base+size*.15f,size*.08f,p);
     }
     void drawClockPanel(Canvas c,float cx,float cy,String name,String time,boolean active,float den){
       float pw=156*den,ph=58*den,l=cx-pw/2f,t=cy-ph/2f;
