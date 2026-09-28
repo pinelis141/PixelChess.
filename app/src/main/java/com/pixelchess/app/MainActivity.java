@@ -83,15 +83,22 @@ public class MainActivity extends Activity {
       p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,getResources().getDisplayMetrics().density));p.setColor(Color.argb(95,20,24,28));for(int i=0;i<=8;i++){c.drawLine(left0+i*s,top,left0+i*s,top+w,p);c.drawLine(left0,top+i*s,left0+w,top+i*s,p);}p.setStyle(Paint.Style.FILL);
       float den=getResources().getDisplayMetrics().density;
       boolean bottomWhite=!bluetoothGame||myWhite;String topName=bottomWhite?"PRETAS":"BRANCAS";String bottomName=bottomWhite?"BRANCAS":"PRETAS";long topMs=bottomWhite?blackMs:whiteMs,bottomMs=bottomWhite?whiteMs:blackMs;
-      p.setTextSize(13*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.LTGRAY);c.drawText(topName,w/2,top-112*den,p);
-      p.setTextSize(26*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(clockText(topMs),w/2,top-82*den,p);
-      p.setTextSize(15*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(status,w/2,top-42*den,p);
+      boolean topActive=bottomWhite?!white:white,bottomActive=!topActive;
+      drawClockPanel(c,w/2,top-96*den,topName,clockText(topMs),topActive,den);
+      p.setTextSize(14*getResources().getDisplayMetrics().scaledDensity);p.setColor(gameOver?Color.rgb(211,87,76):Color.rgb(235,205,132));c.drawText(status,w/2,top-38*den,p);
       p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.argb(210,235,221,184));
       for(int i=0;i<8;i++){int file=flip?7-i:i;int rank=flip?i:7-i;c.drawText(""+(char)('A'+file),left0+i*s+s/2,top+w+14*den,p);p.setTextAlign(Paint.Align.CENTER);c.drawText(""+(rank+1),left0/2f,top+i*s+s*.58f,p);p.setTextAlign(Paint.Align.CENTER);}
-      p.setTextSize(13*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.LTGRAY);c.drawText(bottomName,w/2,top+w+42*den,p);
-      p.setTextSize(26*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(clockText(bottomMs),w/2,top+w+72*den,p);
-      p.setTextSize(12*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.GRAY);String h=history.isEmpty()?"JOGADAS • nenhuma":historyLine();c.drawText(h,w/2,Math.min(getHeight()-48*den,top+w+108*den),p);
-      p.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.DKGRAY);c.drawText("PIXEL CHESS",w/2,Math.min(getHeight()-20*den,top+w+134*den),p);
+      drawClockPanel(c,w/2,top+w+58*den,bottomName,clockText(bottomMs),bottomActive,den);
+      p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(118,121,119));String h=history.isEmpty()?"JOGADAS  ·  nenhuma":historyLine().replace("JOGADAS:","JOGADAS  ·");c.drawText(h,w/2,Math.min(getHeight()-48*den,top+w+112*den),p);
+      p.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(55,59,61));c.drawText("◆  PIXEL CHESS  ◆",w/2,Math.min(getHeight()-20*den,top+w+140*den),p);
+    }
+    void drawClockPanel(Canvas c,float cx,float cy,String name,String time,boolean active,float den){
+      float pw=156*den,ph=58*den,l=cx-pw/2f,t=cy-ph/2f;
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(25,30,33));c.drawRect(l,t,l+pw,t+ph,p);
+      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,den));p.setColor(active?Color.rgb(184,148,70):Color.rgb(55,62,63));c.drawRect(l+.5f*den,t+.5f*den,l+pw-.5f*den,t+ph-.5f*den,p);
+      p.setStyle(Paint.Style.FILL);p.setColor(active?Color.rgb(210,171,82):Color.rgb(73,79,79));c.drawRect(l,t,l+3*den,t+ph,p);
+      p.setTextAlign(Paint.Align.CENTER);p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?Color.rgb(226,211,173):Color.rgb(154,158,156));c.drawText(name,cx,t+18*den,p);
+      p.setTextSize(24*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?cream:Color.rgb(196,194,184));c.drawText(time,cx,t+47*den,p);
     }
     void loadBoardBitmap(){boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.stone_board_pixel);}
     void drawGoldSquare(Canvas c,float left,float top,float size,boolean selected){
@@ -146,7 +153,10 @@ public class MainActivity extends Activity {
       Bitmap bmp=pieceSprites.get(q.charAt(0));
       if(bmp==null){drawPixelPiece(c,q,left,top,size);return;}
       float pad=size*.035f;
-      RectF dst=new RectF(left+pad,top+pad,left+size-pad,top+size-pad);
+      float scale=Character.toLowerCase(q.charAt(0))=='n'?.90f:1f;
+      float full=size-pad*2f,draw=full*scale;
+      float dx=(full-draw)/2f;
+      RectF dst=new RectF(left+pad+dx,top+pad+(full-draw),left+size-pad-dx,top+size-pad);
       c.drawBitmap(bmp,null,dst,spritePaint);
     }
     String clockText(long ms){ms=Math.max(0,ms);long sec=ms/1000;return String.format(Locale.US,"%02d:%02d",sec/60,sec%60);}
