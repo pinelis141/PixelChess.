@@ -53,16 +53,18 @@ public class MainActivity extends Activity {
 
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
-    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); Bitmap[] lightStoneTiles=new Bitmap[3], darkStoneTiles=new Bitmap[3]; Paint spritePaint=new Paint();
+    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); Bitmap boardBitmap; Paint spritePaint=new Paint(),boardPaint=new Paint();
     boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false,flagSent=false; int epR=-1,epC=-1,halfmove=0; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece; long animStart; final long ANIM_MS=200; HashMap<String,Integer> repetitions=new HashMap<>(); long whiteMs,blackMs,lastTick,lastSyncSent; ArrayList<String> history=new ArrayList<>(); Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
     final String back="rnbqkbnr";
-    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); loadPieceSprites(); loadBoardTiles(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
+    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); boardPaint.setAntiAlias(false); boardPaint.setFilterBitmap(false); boardPaint.setDither(false); loadPieceSprites(); loadBoardBitmap(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
     void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;flagSent=false;halfmove=0;repetitions.clear();history.clear();whiteMs=blackMs=selectedMinutes*60000L;lastTick=System.currentTimeMillis();lastSyncSent=lastTick;status="BRANCAS JOGAM";recordPosition();invalidate();}
     protected void onDraw(Canvas c){
       super.onDraw(c);c.drawColor(bg);float den0=getResources().getDisplayMetrics().density,gutter=18*den0,w=getWidth()-gutter*2,s=w/8f,left0=gutter;float top=Math.max(150*den0,(getHeight()-w)/2f-30*den0);
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
       boolean flip=bluetoothGame&&!myWhite;
-      for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;drawStoneSquare(c,r,x,left0+vx*s,top+vr*s,s,((r+x)&1)==0);
+      if(boardBitmap!=null)c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),boardPaint);
+      else{p.setColor(Color.rgb(48,67,59));c.drawRect(left0,top,left0+w,top+w,p);}
+      for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
         String squarePiece=b[r][x];
         if(squarePiece!=null&&Character.toLowerCase(squarePiece.charAt(0))=='k'&&inCheck(isWhite(squarePiece))){
           p.setColor(gameOver?Color.rgb(198,40,40):Color.rgb(245,124,0));
@@ -88,48 +90,7 @@ public class MainActivity extends Activity {
       p.setTextSize(12*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.GRAY);String h=history.isEmpty()?"JOGADAS • nenhuma":historyLine();c.drawText(h,w/2,Math.min(getHeight()-48*den,top+w+108*den),p);
       p.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.DKGRAY);c.drawText("PIXEL CHESS",w/2,Math.min(getHeight()-20*den,top+w+134*den),p);
     }
-    void loadBoardTiles(){
-      lightStoneTiles[0]=BitmapFactory.decodeResource(getResources(),R.drawable.stone_light_01);
-      lightStoneTiles[1]=BitmapFactory.decodeResource(getResources(),R.drawable.stone_light_02);
-      lightStoneTiles[2]=BitmapFactory.decodeResource(getResources(),R.drawable.stone_light_03);
-      darkStoneTiles[0]=BitmapFactory.decodeResource(getResources(),R.drawable.stone_dark_01);
-      darkStoneTiles[1]=BitmapFactory.decodeResource(getResources(),R.drawable.stone_dark_02);
-      darkStoneTiles[2]=BitmapFactory.decodeResource(getResources(),R.drawable.stone_dark_03);
-    }
-    int stoneVariant(int r,int c){return Math.floorMod(r*5+c*3+(r*c),3);}
-    int stoneRotation(int r,int c){
-      int[] pattern={0,2,1,3,2,0,3,1,1,3,0,2,3,1,2,0};
-      return pattern[Math.floorMod(r*8+c,pattern.length)];
-    }
-    boolean stoneMirror(int r,int c){return Math.floorMod(r*11+c*7+r*c,5)==0;}
-    void drawStoneSquare(Canvas c,int r,int col,float left,float top,float size,boolean light){
-      Bitmap[] tiles=light?lightStoneTiles:darkStoneTiles;
-      Bitmap tile=tiles[stoneVariant(r,col)];
-      int base=light?Color.rgb(211,194,156):Color.rgb(48,67,59);
-      p.setStyle(Paint.Style.FILL);p.setAlpha(255);p.setColor(base);c.drawRect(left,top,left+size,top+size,p);
-      if(tile==null)return;
-
-      int inset=Math.max(1,Math.round(Math.min(tile.getWidth(),tile.getHeight())*.08f));
-      Rect src=new Rect(inset,inset,tile.getWidth()-inset,tile.getHeight()-inset);
-      RectF dst=new RectF(left,top,left+size,top+size);
-      Paint stonePaint=new Paint();
-      stonePaint.setAntiAlias(false);stonePaint.setFilterBitmap(false);stonePaint.setDither(false);stonePaint.setAlpha(255);
-
-      // Fixed per-square orientation breaks long diagonal seams while remaining stable every frame.
-      int rotation=stoneRotation(r,col);
-      boolean mirror=stoneMirror(r,col);
-      c.save();
-      float cx=left+size*.5f,cy=top+size*.5f;
-      c.rotate(rotation*90f,cx,cy);
-      if(mirror)c.scale(-1f,1f,cx,cy);
-      c.drawBitmap(tile,src,dst,stonePaint);
-      c.restore();
-
-      // Very light wash keeps pieces readable without hiding the stone texture.
-      p.setColor(light?Color.argb(18,235,218,178):Color.argb(14,38,55,49));
-      c.drawRect(dst,p);
-      p.setAlpha(255);
-    }
+    void loadBoardBitmap(){boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.stone_board_pixel);}
     void drawGoldSquare(Canvas c,float left,float top,float size,boolean selected){
       p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(112,222,158,35));c.drawRect(left,top,left+size,top+size,p);
       p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(2f,size*.035f));p.setColor(Color.rgb(238,184,58));
