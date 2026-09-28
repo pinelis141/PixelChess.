@@ -16,8 +16,8 @@ import java.util.UUID;
 public class MainActivity extends Activity {
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
   static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
-  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10; final Object btWriteLock=new Object();
-  @Override public void onCreate(Bundle b){super.onCreate(b); showMenu();}
+  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10; String selectedTheme="classic"; final Object btWriteLock=new Object();
+  @Override public void onCreate(Bundle b){super.onCreate(b); selectedTheme=getSharedPreferences("pixelchess",MODE_PRIVATE).getString("theme","classic"); showMenu();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
   Button button(String s){ Button b=new Button(this); b.setText(s); b.setTextSize(18); b.setAllCaps(false); b.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return b; }
@@ -28,10 +28,21 @@ public class MainActivity extends Activity {
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
+    Button themes=button("◆ Cenário: "+themeName()); themes.setOnClickListener(v->chooseTheme()); box.addView(themes,new LinearLayout.LayoutParams(-1,-2));
     TextView ver=title("\nMVP 0.13 • Pixel pieces",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
+  String themeName(){return selectedTheme.equals("forest")?"FLORESTA":"MÁRMORE";}
+  void chooseTheme(){
+    String[] names={"Mármore","Floresta (em desenvolvimento)"};
+    int checked=selectedTheme.equals("forest")?1:0;
+    new AlertDialog.Builder(this).setTitle("CENÁRIO").setSingleChoiceItems(names,checked,(d,i)->{
+      selectedTheme=i==1?"forest":"classic";
+      getSharedPreferences("pixelchess",MODE_PRIVATE).edit().putString("theme",selectedTheme).apply();
+      d.dismiss();showMenu();
+    }).setNegativeButton("CANCELAR",null).show();
+  }
 
   boolean btPermission(){ if(Build.VERSION.SDK_INT>=31 && checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT","android.permission.BLUETOOTH_SCAN"},42);return false;}return true; }
   void chooseTime(boolean bt){String[] x={"10 minutos","5 minutos","3 minutos"};new AlertDialog.Builder(this).setTitle("RELÓGIO").setItems(x,(d,i)->{selectedMinutes=i==0?10:i==1?5:3;if(bt)hostGame();else setContentView(new ChessView(this));}).setNegativeButton("CANCELAR",null).show();}
