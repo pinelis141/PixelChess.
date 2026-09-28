@@ -87,18 +87,41 @@ public class MainActivity extends Activity {
       p.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.DKGRAY);c.drawText("PIXEL CHESS",w/2,Math.min(getHeight()-20*den,top+w+134*den),p);
     }
     void loadPieceSprites(){
-      pieceSprites.put('P',BitmapFactory.decodeResource(getResources(),R.drawable.w_pawn));
-      pieceSprites.put('R',BitmapFactory.decodeResource(getResources(),R.drawable.w_rook));
-      pieceSprites.put('N',BitmapFactory.decodeResource(getResources(),R.drawable.w_knight));
-      pieceSprites.put('B',BitmapFactory.decodeResource(getResources(),R.drawable.w_bishop));
-      pieceSprites.put('Q',BitmapFactory.decodeResource(getResources(),R.drawable.w_queen));
-      pieceSprites.put('K',BitmapFactory.decodeResource(getResources(),R.drawable.w_king));
-      pieceSprites.put('p',BitmapFactory.decodeResource(getResources(),R.drawable.b_pawn));
-      pieceSprites.put('r',BitmapFactory.decodeResource(getResources(),R.drawable.b_rook));
-      pieceSprites.put('n',BitmapFactory.decodeResource(getResources(),R.drawable.b_knight));
-      pieceSprites.put('b',BitmapFactory.decodeResource(getResources(),R.drawable.b_bishop));
-      pieceSprites.put('q',BitmapFactory.decodeResource(getResources(),R.drawable.b_queen));
-      pieceSprites.put('k',BitmapFactory.decodeResource(getResources(),R.drawable.b_king));
+      pieceSprites.put('P',cleanDisconnectedSprite(R.drawable.w_pawn));
+      pieceSprites.put('R',cleanDisconnectedSprite(R.drawable.w_rook));
+      pieceSprites.put('N',cleanDisconnectedSprite(R.drawable.w_knight));
+      pieceSprites.put('B',cleanDisconnectedSprite(R.drawable.w_bishop));
+      pieceSprites.put('Q',cleanDisconnectedSprite(R.drawable.w_queen));
+      pieceSprites.put('K',cleanDisconnectedSprite(R.drawable.w_king));
+      pieceSprites.put('p',cleanDisconnectedSprite(R.drawable.b_pawn));
+      pieceSprites.put('r',cleanDisconnectedSprite(R.drawable.b_rook));
+      pieceSprites.put('n',cleanDisconnectedSprite(R.drawable.b_knight));
+      pieceSprites.put('b',cleanDisconnectedSprite(R.drawable.b_bishop));
+      pieceSprites.put('q',cleanDisconnectedSprite(R.drawable.b_queen));
+      pieceSprites.put('k',cleanDisconnectedSprite(R.drawable.b_king));
+    }
+    Bitmap cleanDisconnectedSprite(int resId){
+      Bitmap src=BitmapFactory.decodeResource(getResources(),resId);
+      if(src==null)return null;
+      Bitmap out=src.copy(Bitmap.Config.ARGB_8888,true);
+      int w=out.getWidth(),h=out.getHeight(),n=w*h;
+      int[] px=new int[n];out.getPixels(px,0,w,0,0,w,h);
+      int[] label=new int[n];int next=0,best=0,bestSize=0;
+      ArrayDeque<Integer> q=new ArrayDeque<>();
+      for(int start=0;start<n;start++){
+        if(label[start]!=0||Color.alpha(px[start])<=10)continue;
+        next++;int count=0;label[start]=next;q.add(start);
+        while(!q.isEmpty()){
+          int i=q.removeFirst();count++;int x=i%w,y=i/w,j;
+          if(x>0){j=i-1;if(label[j]==0&&Color.alpha(px[j])>10){label[j]=next;q.add(j);}}
+          if(x<w-1){j=i+1;if(label[j]==0&&Color.alpha(px[j])>10){label[j]=next;q.add(j);}}
+          if(y>0){j=i-w;if(label[j]==0&&Color.alpha(px[j])>10){label[j]=next;q.add(j);}}
+          if(y<h-1){j=i+w;if(label[j]==0&&Color.alpha(px[j])>10){label[j]=next;q.add(j);}}
+        }
+        if(count>bestSize){bestSize=count;best=next;}
+      }
+      for(int i=0;i<n;i++)if(label[i]!=0&&label[i]!=best)px[i]=Color.TRANSPARENT;
+      out.setPixels(px,0,w,0,0,w,h);return out;
     }
     void drawPieceSprite(Canvas c,String q,float left,float top,float size){
       Bitmap bmp=pieceSprites.get(q.charAt(0));
