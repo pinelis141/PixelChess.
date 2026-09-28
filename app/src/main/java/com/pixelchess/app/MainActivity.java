@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
     Button themes=button("◆ Cenário: "+themeName()); themes.setOnClickListener(v->chooseTheme()); box.addView(themes,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.14 • Temas visuais",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    TextView ver=title("\nMVP 0.15 • Visual em camadas",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
@@ -62,18 +62,29 @@ public class MainActivity extends Activity {
   void closeBluetooth(){bluetoothGame=false;try{if(serverSocket!=null)serverSocket.close();}catch(Exception ignored){}try{if(socket!=null)socket.close();}catch(Exception ignored){}serverSocket=null;socket=null;btOut=null;}
   void toast(String x){Toast.makeText(this,x,Toast.LENGTH_LONG).show();}
 
+  static class ThemeAssets {
+    final int backgroundRes,groundRes,frameRes,boardRes,clockRes;
+    ThemeAssets(int backgroundRes,int groundRes,int frameRes,int boardRes,int clockRes){
+      this.backgroundRes=backgroundRes;this.groundRes=groundRes;this.frameRes=frameRes;this.boardRes=boardRes;this.clockRes=clockRes;
+    }
+  }
+  ThemeAssets themeAssets(){
+    if(selectedTheme.equals("forest"))return new ThemeAssets(R.drawable.forest_scene_bg,0,0,R.drawable.stone_board_pixel,R.drawable.forest_clock_panel);
+    return new ThemeAssets(0,0,0,R.drawable.stone_board_pixel,0);
+  }
+
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
-    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); Bitmap boardBitmap,forestBackgroundBitmap,forestClockBitmap; Paint spritePaint=new Paint(),boardPaint=new Paint(),themePaint=new Paint();
+    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); ThemeAssets activeTheme; Bitmap themeBackgroundBitmap,themeGroundBitmap,themeFrameBitmap,boardBitmap,themeClockBitmap; Paint spritePaint=new Paint(),boardPaint=new Paint(),themePaint=new Paint();
     boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false,flagSent=false; int epR=-1,epC=-1,halfmove=0; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece; long animStart; final long ANIM_MS=200; HashMap<String,Integer> repetitions=new HashMap<>(); long whiteMs,blackMs,lastTick,lastSyncSent; ArrayList<String> history=new ArrayList<>(); Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
     final String back="rnbqkbnr";
-    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); boardPaint.setAntiAlias(false); boardPaint.setFilterBitmap(false); boardPaint.setDither(false); themePaint.setAntiAlias(false); themePaint.setFilterBitmap(false); themePaint.setDither(false); loadPieceSprites(); loadBoardBitmap(); loadThemeBitmaps(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
+    ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); boardPaint.setAntiAlias(false); boardPaint.setFilterBitmap(false); boardPaint.setDither(false); themePaint.setAntiAlias(false); themePaint.setFilterBitmap(false); themePaint.setDither(false); loadPieceSprites(); loadThemeBitmaps(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
     void reset(){for(int r=0;r<8;r++)Arrays.fill(b[r],null);for(int i=0;i<8;i++){b[0][i]=""+back.charAt(i);b[1][i]="p";b[6][i]="P";b[7][i]=(""+back.charAt(i)).toUpperCase();}white=true;gameOver=false;flagSent=false;halfmove=0;repetitions.clear();history.clear();whiteMs=blackMs=selectedMinutes*60000L;lastTick=System.currentTimeMillis();lastSyncSent=lastTick;status="BRANCAS JOGAM";recordPosition();invalidate();}
     protected void onDraw(Canvas c){
-      super.onDraw(c);float den0=getResources().getDisplayMetrics().density,gutter=(selectedTheme.equals("forest")?42f:18f)*den0,w=getWidth()-gutter*2,s=w/8f,left0=gutter;float top=Math.max(150*den0,(getHeight()-w)/2f-30*den0);if(selectedTheme.equals("forest"))drawForestBackdrop(c,left0,top,w,den0);else c.drawColor(bg);
+      super.onDraw(c);float den0=getResources().getDisplayMetrics().density,gutter=(selectedTheme.equals("forest")?42f:18f)*den0,w=getWidth()-gutter*2,s=w/8f,left0=gutter;float top=Math.max(150*den0,(getHeight()-w)/2f-30*den0);drawThemeBackdrop(c,left0,top,w,den0);
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
       boolean flip=bluetoothGame&&!myWhite;
-      if(selectedTheme.equals("forest"))drawStoneFrame(c,left0,top,w,den0);
+      if(selectedTheme.equals("forest")){drawThemeGround(c,left0,top,w,den0);drawThemeFrame(c,left0,top,w,den0);}
       if(boardBitmap!=null)c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),boardPaint);
       else{p.setColor(Color.rgb(48,67,59));c.drawRect(left0,top,left0+w,top+w,p);}
       // Subtle glaze on dark marble squares: calms the bright veins without flattening the stone volume.
@@ -107,41 +118,47 @@ public class MainActivity extends Activity {
       p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(118,121,119));String h=history.isEmpty()?"JOGADAS  ·  nenhuma":historyLine().replace("JOGADAS:","JOGADAS  ·");c.drawText(h,getWidth()/2f,Math.min(getHeight()-48*den,top+w+112*den),p);
       p.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(55,59,61));c.drawText("◆  PIXEL CHESS  ◆",getWidth()/2f,Math.min(getHeight()-20*den,top+w+140*den),p);
     }
-    void drawForestBackdrop(Canvas c,float left,float top,float board,float den){
-      c.drawColor(Color.rgb(12,31,22));
-      if(forestBackgroundBitmap!=null){
-        themePaint.setAlpha(255);
-        c.drawBitmap(forestBackgroundBitmap,null,new RectF(0,0,getWidth(),getHeight()),themePaint);
-      }else{
-        p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(28,54,34));c.drawRect(0,0,getWidth(),getHeight(),p);
-      }
-      float outer=board*(512f/428f),pad=(outer-board)/2f;
-      p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(105,5,12,8));
-      c.drawRoundRect(new RectF(left-pad+4*den,top-pad+5*den,left+board+pad+4*den,top+board+pad+5*den),8*den,8*den,p);
+    void drawThemeBackdrop(Canvas c,float left,float top,float board,float den){
+      if(themeBackgroundBitmap==null){c.drawColor(selectedTheme.equals("forest")?Color.rgb(12,31,22):bg);return;}
+      drawCenterCrop(c,themeBackgroundBitmap,new RectF(0,0,getWidth(),getHeight()),themePaint);
     }
-    void drawStoneFrame(Canvas c,float left,float top,float board,float den){
+    void drawCenterCrop(Canvas c,Bitmap bmp,RectF dst,Paint paint){
+      float srcRatio=bmp.getWidth()/(float)bmp.getHeight(),dstRatio=dst.width()/dst.height();
+      Rect src;
+      if(srcRatio>dstRatio){
+        int sw=Math.round(bmp.getHeight()*dstRatio),x=(bmp.getWidth()-sw)/2;src=new Rect(x,0,x+sw,bmp.getHeight());
+      }else{
+        int sh=Math.round(bmp.getWidth()/dstRatio),y=(bmp.getHeight()-sh)/2;src=new Rect(0,y,bmp.getWidth(),y+sh);
+      }
+      c.drawBitmap(bmp,src,dst,paint);
+    }
+    void drawThemeGround(Canvas c,float left,float top,float board,float den){
+      float framePad=board*.075f,groundPad=board*.145f;
+      RectF ground=new RectF(left-groundPad,top-groundPad,left+board+groundPad,top+board+groundPad);
+      if(themeGroundBitmap!=null){themePaint.setAlpha(255);c.drawBitmap(themeGroundBitmap,null,ground,themePaint);return;}
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(205,73,88,48));c.drawRoundRect(ground,12*den,12*den,p);
+      p.setColor(Color.argb(155,109,91,51));
+      for(int i=0;i<28;i++){
+        float gx=ground.left+((i*67)%Math.max(1,(int)ground.width()));
+        float gy=ground.top+((i*41)%Math.max(1,(int)ground.height()));
+        if(gx>left-framePad&&gx<left+board+framePad&&gy>top-framePad&&gy<top+board+framePad)continue;
+        c.drawCircle(gx,gy,(i%3==0?1.8f:1.1f)*den,p);
+      }
+    }
+    void drawThemeFrame(Canvas c,float left,float top,float board,float den){
       float outer=board*(512f/428f),pad=(outer-board)/2f;
-      p.setStyle(Paint.Style.FILL);
-      p.setColor(Color.rgb(72,73,63));
-      c.drawRoundRect(new RectF(left-pad,top-pad,left+board+pad,top+board+pad),7*den,7*den,p);
-      p.setColor(Color.rgb(101,100,84));
-      float block=board/8f;
+      RectF dst=new RectF(left-pad,top-pad,left+board+pad,top+board+pad);
+      if(themeFrameBitmap!=null){themePaint.setAlpha(255);c.drawBitmap(themeFrameBitmap,null,dst,themePaint);return;}
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(72,73,63));c.drawRoundRect(dst,7*den,7*den,p);
+      p.setColor(Color.rgb(101,100,84));float block=board/8f;
       for(int i=0;i<8;i++){
         float x=left+i*block,y=top+i*block;
-        c.drawRect(x,top-pad,x+block-1*den,top-2*den,p);
-        c.drawRect(x,top+board+2*den,x+block-1*den,top+board+pad,p);
-        c.drawRect(left-pad,y,left-2*den,y+block-1*den,p);
-        c.drawRect(left+board+2*den,y,left+board+pad,y+block-1*den,p);
+        c.drawRect(x,top-pad,x+block-1*den,top-2*den,p);c.drawRect(x,top+board+2*den,x+block-1*den,top+board+pad,p);
+        c.drawRect(left-pad,y,left-2*den,y+block-1*den,p);c.drawRect(left+board+2*den,y,left+board+pad,y+block-1*den,p);
       }
-      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,den));p.setColor(Color.rgb(43,47,40));
-      c.drawRoundRect(new RectF(left-pad,top-pad,left+board+pad,top+board+pad),7*den,7*den,p);
-      p.setStyle(Paint.Style.FILL);
-      p.setColor(Color.rgb(73,96,54));
-      for(int i=0;i<12;i++){
-        float x=left-pad+(i*37%(int)Math.max(1,outer-10*den))+5*den;
-        float y=(i%2==0)?top-pad+3*den:top+board+pad-5*den;
-        c.drawCircle(x,y,2.1f*den,p);
-      }
+      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,den));p.setColor(Color.rgb(43,47,40));c.drawRoundRect(dst,7*den,7*den,p);
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(73,96,54));
+      for(int i=0;i<12;i++){float x=left-pad+(i*37%(int)Math.max(1,outer-10*den))+5*den;float y=(i%2==0)?top-pad+3*den:top+board+pad-5*den;c.drawCircle(x,y,2.1f*den,p);}
     }
     void drawStoneCoordinates(Canvas c,float left,float top,float board,float square,boolean flip,float den){
       float outer=board*(512f/428f),pad=(outer-board)/2f;
@@ -156,9 +173,9 @@ public class MainActivity extends Activity {
       }
     }
     void drawClockPanel(Canvas c,float cx,float cy,String name,String time,boolean active,float den){
-      if(selectedTheme.equals("forest")&&forestClockBitmap!=null){
+      if(selectedTheme.equals("forest")&&themeClockBitmap!=null){
         float pw=176*den,ph=52*den,l=cx-pw/2f,t=cy-ph/2f;
-        themePaint.setAlpha(active?255:205);c.drawBitmap(forestClockBitmap,null,new RectF(l,t,l+pw,t+ph),themePaint);themePaint.setAlpha(255);
+        themePaint.setAlpha(active?255:205);c.drawBitmap(themeClockBitmap,null,new RectF(l,t,l+pw,t+ph),themePaint);themePaint.setAlpha(255);
         p.setTextAlign(Paint.Align.CENTER);p.setStyle(Paint.Style.FILL);
         p.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?Color.rgb(245,222,162):Color.rgb(190,181,151));c.drawText(name,cx,t+17*den,p);
         p.setTextSize(22*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?Color.rgb(255,239,194):Color.rgb(218,207,177));c.drawText(time,cx,t+43*den,p);
@@ -172,14 +189,16 @@ public class MainActivity extends Activity {
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?Color.rgb(226,211,173):Color.rgb(154,158,156));c.drawText(name,cx,t+18*den,p);
       p.setTextSize(24*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?cream:Color.rgb(196,194,184));c.drawText(time,cx,t+47*den,p);
     }
-    void loadBoardBitmap(){boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.stone_board_pixel);}
-    void loadThemeBitmaps(){BitmapFactory.Options o=new BitmapFactory.Options();o.inScaled=false;forestBackgroundBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.forest_scene_bg,o);forestClockBitmap=loadRawBase64Bitmap(R.raw.forest_clock_panel_b64);}
-    Bitmap loadRawBase64Bitmap(int resId){
-      try(InputStream in=getResources().openRawResource(resId);ByteArrayOutputStream out=new ByteArrayOutputStream()){
-        byte[] buf=new byte[4096];int n;while((n=in.read(buf))>0)out.write(buf,0,n);
-        byte[] data=android.util.Base64.decode(new String(out.toByteArray(),"US-ASCII").trim(),android.util.Base64.DEFAULT);
-        return BitmapFactory.decodeByteArray(data,0,data.length);
-      }catch(Exception ignored){return null;}
+    Bitmap decodeDrawable(int resId){
+      if(resId==0)return null;BitmapFactory.Options o=new BitmapFactory.Options();o.inScaled=false;return BitmapFactory.decodeResource(getResources(),resId,o);
+    }
+    void loadThemeBitmaps(){
+      activeTheme=themeAssets();
+      themeBackgroundBitmap=decodeDrawable(activeTheme.backgroundRes);
+      themeGroundBitmap=decodeDrawable(activeTheme.groundRes);
+      themeFrameBitmap=decodeDrawable(activeTheme.frameRes);
+      boardBitmap=decodeDrawable(activeTheme.boardRes);
+      themeClockBitmap=decodeDrawable(activeTheme.clockRes);
     }
     void drawGoldSquare(Canvas c,float left,float top,float size,boolean selected){
       p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(112,222,158,35));c.drawRect(left,top,left+size,top+size,p);
