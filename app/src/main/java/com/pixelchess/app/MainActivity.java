@@ -64,6 +64,9 @@ public class MainActivity extends Activity {
       boolean flip=bluetoothGame&&!myWhite;
       if(boardBitmap!=null)c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),boardPaint);
       else{p.setColor(Color.rgb(48,67,59));c.drawRect(left0,top,left0+w,top+w,p);}
+      // Subtle glaze on dark marble squares: calms the bright veins without flattening the stone volume.
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(24,18,38,31));
+      for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int rr=flip?7-vr:vr,xx=flip?7-vx:vx;if(((rr+xx)&1)==1)c.drawRect(left0+vx*s,top+vr*s,left0+(vx+1)*s,top+(vr+1)*s,p);}
       for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
         String squarePiece=b[r][x];
         if(squarePiece!=null&&Character.toLowerCase(squarePiece.charAt(0))=='k'&&inCheck(isWhite(squarePiece))){
