@@ -29,7 +29,7 @@ public class MainActivity extends Activity {
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
     Button themes=button("◆ Cenário: "+themeName()); themes.setOnClickListener(v->chooseTheme()); box.addView(themes,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP 0.15 • Visual em camadas",12); ver.setTextColor(Color.GRAY); box.addView(ver);
+    TextView ver=title("\nMVP 0.16 • Forest Layers",12); ver.setTextColor(Color.GRAY); box.addView(ver);
     setContentView(box);
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
@@ -133,7 +133,7 @@ public class MainActivity extends Activity {
       c.drawBitmap(bmp,src,dst,paint);
     }
     void drawThemeGround(Canvas c,float left,float top,float board,float den){
-      float framePad=board*.075f,groundPad=board*.145f;
+      float framePad=board*.045f,groundPad=board*.115f;
       RectF ground=new RectF(left-groundPad,top-groundPad,left+board+groundPad,top+board+groundPad);
       if(themeGroundBitmap!=null){themePaint.setAlpha(255);c.drawBitmap(themeGroundBitmap,null,ground,themePaint);return;}
       p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(205,73,88,48));c.drawRoundRect(ground,12*den,12*den,p);
@@ -146,18 +146,18 @@ public class MainActivity extends Activity {
       }
     }
     void drawThemeFrame(Canvas c,float left,float top,float board,float den){
-      float outer=board*(512f/428f),pad=(outer-board)/2f;
+      float pad=board*.045f,outer=board+pad*2f;
       RectF dst=new RectF(left-pad,top-pad,left+board+pad,top+board+pad);
       if(themeFrameBitmap!=null){themePaint.setAlpha(255);c.drawBitmap(themeFrameBitmap,null,dst,themePaint);return;}
-      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(72,73,63));c.drawRoundRect(dst,7*den,7*den,p);
-      p.setColor(Color.rgb(101,100,84));float block=board/8f;
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(43,48,43));c.drawRoundRect(dst,5*den,5*den,p);
+      p.setColor(Color.rgb(65,69,61));float block=board/8f;
       for(int i=0;i<8;i++){
         float x=left+i*block,y=top+i*block;
         c.drawRect(x,top-pad,x+block-1*den,top-2*den,p);c.drawRect(x,top+board+2*den,x+block-1*den,top+board+pad,p);
         c.drawRect(left-pad,y,left-2*den,y+block-1*den,p);c.drawRect(left+board+2*den,y,left+board+pad,y+block-1*den,p);
       }
-      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,den));p.setColor(Color.rgb(43,47,40));c.drawRoundRect(dst,7*den,7*den,p);
-      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(73,96,54));
+      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,den));p.setColor(Color.rgb(25,30,27));c.drawRoundRect(dst,5*den,5*den,p);
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(48,73,43));
       for(int i=0;i<12;i++){float x=left-pad+(i*37%(int)Math.max(1,outer-10*den))+5*den;float y=(i%2==0)?top-pad+3*den:top+board+pad-5*den;c.drawCircle(x,y,2.1f*den,p);}
     }
     void drawStoneCoordinates(Canvas c,float left,float top,float board,float square,boolean flip,float den){
