@@ -95,11 +95,11 @@ public class MainActivity extends Activity {
       float den=getResources().getDisplayMetrics().density;
       boolean bottomWhite=!bluetoothGame||myWhite;String topName=bottomWhite?"PRETAS":"BRANCAS";String bottomName=bottomWhite?"BRANCAS":"PRETAS";long topMs=bottomWhite?blackMs:whiteMs,bottomMs=bottomWhite?whiteMs:blackMs;
       boolean topActive=bottomWhite?!white:white,bottomActive=!topActive;
-      drawClockPanel(c,getWidth()/2f,top-96*den,topName,clockText(topMs),topActive,den);
+      drawClockPanel(c,getWidth()/2f,top-100*den,topName,clockText(topMs),topActive,den);
       p.setTextSize(14*getResources().getDisplayMetrics().scaledDensity);p.setColor(gameOver?Color.rgb(211,87,76):Color.rgb(235,205,132));c.drawText(status,getWidth()/2f,top-38*den,p);
       p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.argb(210,235,221,184));
       for(int i=0;i<8;i++){int file=flip?7-i:i;int rank=flip?i:7-i;c.drawText(""+(char)('A'+file),left0+i*s+s/2,top+w+14*den,p);p.setTextAlign(Paint.Align.CENTER);c.drawText(""+(rank+1),left0/2f,top+i*s+s*.58f,p);p.setTextAlign(Paint.Align.CENTER);}
-      drawClockPanel(c,getWidth()/2f,top+w+58*den,bottomName,clockText(bottomMs),bottomActive,den);
+      drawClockPanel(c,getWidth()/2f,top+w+64*den,bottomName,clockText(bottomMs),bottomActive,den);
       p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(118,121,119));String h=history.isEmpty()?"JOGADAS  ·  nenhuma":historyLine().replace("JOGADAS:","JOGADAS  ·");c.drawText(h,getWidth()/2f,Math.min(getHeight()-48*den,top+w+112*den),p);
       p.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(55,59,61));c.drawText("◆  PIXEL CHESS  ◆",getWidth()/2f,Math.min(getHeight()-20*den,top+w+140*den),p);
     }
@@ -107,15 +107,12 @@ public class MainActivity extends Activity {
       c.drawColor(Color.rgb(12,31,22));
       p.setStyle(Paint.Style.FILL);
       p.setColor(Color.rgb(16,39,27));c.drawRect(0,0,getWidth(),getHeight(),p);
+      p.setColor(Color.rgb(19,45,30));c.drawRect(0,Math.max(0,top-150*den),getWidth(),Math.min(getHeight(),top+board+150*den),p);
       if(forestFrameBitmap!=null){
-        int bw=forestFrameBitmap.getWidth(),bh=forestFrameBitmap.getHeight();
-        themePaint.setAlpha(145);
-        c.drawBitmap(forestFrameBitmap,new Rect(0,0,bw,Math.max(1,bh/4)),new RectF(0,Math.max(0,top-155*den),getWidth(),top-18*den),themePaint);
-        c.drawBitmap(forestFrameBitmap,new Rect(0,Math.max(0,bh*3/4),bw,bh),new RectF(0,top+board+18*den,getWidth(),Math.min(getHeight(),top+board+165*den)),themePaint);
-        float frameSize=Math.min(getWidth()-4*den,board+88*den),fx=(getWidth()-frameSize)/2f,fy=top-(frameSize-board)/2f;
-        themePaint.setAlpha(255);c.drawBitmap(forestFrameBitmap,null,new RectF(fx,fy,fx+frameSize,fy+frameSize),themePaint);
+        float frameSize=Math.min(getWidth()-10*den,board+54*den),fx=(getWidth()-frameSize)/2f,fy=top-(frameSize-board)/2f;
+        themePaint.setAlpha(245);c.drawBitmap(forestFrameBitmap,null,new RectF(fx,fy,fx+frameSize,fy+frameSize),themePaint);themePaint.setAlpha(255);
       }
-      p.setColor(Color.argb(95,5,13,9));c.drawRect(left-4*den,top-4*den,left+board+4*den,top+board+4*den,p);
+      p.setColor(Color.argb(112,5,13,9));c.drawRect(left-3*den,top-3*den,left+board+3*den,top+board+3*den,p);
     }
     void drawClockPanel(Canvas c,float cx,float cy,String name,String time,boolean active,float den){
       if(selectedTheme.equals("forest")&&forestClockBitmap!=null){
