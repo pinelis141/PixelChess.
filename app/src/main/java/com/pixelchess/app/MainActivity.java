@@ -55,7 +55,7 @@ public class MainActivity extends Activity {
 
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
-    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); Bitmap boardBitmap; Paint spritePaint=new Paint(),boardPaint=new Paint(); int skin=selectedSkin;
+    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); Bitmap boardBitmap,frameBitmap; Paint spritePaint=new Paint(),boardPaint=new Paint(); int skin=selectedSkin;
     boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false,flagSent=false; int epR=-1,epC=-1,halfmove=0; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece; long animStart; final long ANIM_MS=200; HashMap<String,Integer> repetitions=new HashMap<>(); long whiteMs,blackMs,lastTick,lastSyncSent; ArrayList<String> history=new ArrayList<>(); Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
     final String back="rnbqkbnr";
     ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); boardPaint.setAntiAlias(false); boardPaint.setFilterBitmap(false); boardPaint.setDither(false); loadPieceSprites(); loadBoardBitmap(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
@@ -64,12 +64,14 @@ public class MainActivity extends Activity {
       super.onDraw(c);c.drawColor(bg);float den0=getResources().getDisplayMetrics().density,gutter=18*den0,w=getWidth()-gutter*2,s=w/8f,left0=gutter;float top=Math.max(150*den0,(getHeight()-w)/2f-30*den0);
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
       boolean flip=bluetoothGame&&!myWhite;
-      if(boardBitmap!=null){ if(skin==1){Paint fp=new Paint(boardPaint); fp.setColorFilter(new LightingColorFilter(Color.rgb(190,220,180),Color.rgb(0,12,0))); c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),fp);} else c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),boardPaint); }
+      if(skin==1)drawForestBackdrop(c,left0,top,w,den0);
+      if(boardBitmap!=null)c.drawBitmap(boardBitmap,null,new RectF(left0,top,left0+w,top+w),boardPaint);
       else{p.setColor(Color.rgb(48,67,59));c.drawRect(left0,top,left0+w,top+w,p);}
-      if(skin==1)drawForestFrame(c,left0,top,w,den0);
-      // Subtle glaze on dark marble squares: calms the bright veins without flattening the stone volume.
-      p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(24,18,38,31));
-      for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int rr=flip?7-vr:vr,xx=flip?7-vx:vx;if(((rr+xx)&1)==1)c.drawRect(left0+vx*s,top+vr*s,left0+(vx+1)*s,top+(vr+1)*s,p);}
+      // Keep the original stone board glaze only on the traditional skin.
+      if(skin==0){
+        p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(24,18,38,31));
+        for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int rr=flip?7-vr:vr,xx=flip?7-vx:vx;if(((rr+xx)&1)==1)c.drawRect(left0+vx*s,top+vr*s,left0+(vx+1)*s,top+(vr+1)*s,p);}
+      }
       for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
         String squarePiece=b[r][x];
         if(squarePiece!=null&&Character.toLowerCase(squarePiece.charAt(0))=='k'&&inCheck(isWhite(squarePiece))){
@@ -103,14 +105,31 @@ public class MainActivity extends Activity {
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?Color.rgb(226,211,173):Color.rgb(154,158,156));c.drawText(name,cx,t+18*den,p);
       p.setTextSize(24*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?cream:Color.rgb(196,194,184));c.drawText(time,cx,t+47*den,p);
     }
-    void loadBoardBitmap(){boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.stone_board_pixel);}
-    void drawForestFrame(Canvas c,float left,float top,float size,float den){
-      float edge=Math.max(5f,7f*den), pulse=(float)(0.5+0.5*Math.sin(System.currentTimeMillis()/650.0));
-      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(edge);p.setColor(Color.rgb(55,83,45));c.drawRect(left-edge/2,top-edge/2,left+size+edge/2,top+size+edge/2,p);
-      p.setStrokeWidth(Math.max(1f,2f*den));p.setColor(Color.argb((int)(65+55*pulse),202,180,83));c.drawRect(left-edge,top-edge,left+size+edge,top+size+edge,p);
-      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(74,103,54));
-      float r=Math.max(2f,3f*den); for(int i=0;i<8;i++){float q=left+(i+.5f)*size/8f;c.drawCircle(q,top-edge*.75f,r,p);c.drawCircle(q,top+size+edge*.75f,r,p);}
-      p.setStyle(Paint.Style.FILL);postInvalidateDelayed(50);
+    void loadBoardBitmap(){
+      if(skin==1){
+        boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.forest_board);
+        frameBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.forest_frame);
+      }else{
+        boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.stone_board_pixel);
+        frameBitmap=null;
+      }
+    }
+    void drawForestBackdrop(Canvas c,float left,float top,float size,float den){
+      float margin=Math.min(Math.max(10f*den,14f*den),Math.max(0f,left-2f*den));
+      float pulse=(float)(0.5+0.5*Math.sin(System.currentTimeMillis()/700.0));
+      p.setStyle(Paint.Style.STROKE);
+      p.setStrokeWidth(Math.max(2f,3f*den));
+      p.setColor(Color.argb((int)(28+34*pulse),218,184,72));
+      c.drawRect(left-margin*.68f,top-margin*.68f,left+size+margin*.68f,top+size+margin*.68f,p);
+      p.setStrokeWidth(Math.max(3f,5f*den));
+      p.setColor(Color.argb((int)(18+22*pulse),105,145,68));
+      c.drawRect(left-margin*.90f,top-margin*.90f,left+size+margin*.90f,top+size+margin*.90f,p);
+      p.setStyle(Paint.Style.FILL);
+      if(frameBitmap!=null){
+        RectF dst=new RectF(left-margin,top-margin,left+size+margin,top+size+margin);
+        c.drawBitmap(frameBitmap,null,dst,boardPaint);
+      }
+      postInvalidateDelayed(50);
     }
     void drawGoldSquare(Canvas c,float left,float top,float size,boolean selected){
       p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(112,222,158,35));c.drawRect(left,top,left+size,top+size,p);
