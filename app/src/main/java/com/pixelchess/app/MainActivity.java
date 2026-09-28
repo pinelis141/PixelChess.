@@ -97,6 +97,11 @@ public class MainActivity extends Activity {
       darkStoneTiles[2]=BitmapFactory.decodeResource(getResources(),R.drawable.stone_dark_03);
     }
     int stoneVariant(int r,int c){return Math.floorMod(r*5+c*3+(r*c),3);}
+    int stoneRotation(int r,int c){
+      int[] pattern={0,2,1,3,2,0,3,1,1,3,0,2,3,1,2,0};
+      return pattern[Math.floorMod(r*8+c,pattern.length)];
+    }
+    boolean stoneMirror(int r,int c){return Math.floorMod(r*11+c*7+r*c,5)==0;}
     void drawStoneSquare(Canvas c,int r,int col,float left,float top,float size,boolean light){
       Bitmap[] tiles=light?lightStoneTiles:darkStoneTiles;
       Bitmap tile=tiles[stoneVariant(r,col)];
@@ -104,34 +109,25 @@ public class MainActivity extends Activity {
       p.setStyle(Paint.Style.FILL);p.setAlpha(255);p.setColor(base);c.drawRect(left,top,left+size,top+size,p);
       if(tile==null)return;
 
-      // Use the old tiles only as a very faint source of natural stone variation.
-      // A heavy tint removes the diagonal/block pattern that made each square look padded.
-      int inset=Math.max(1,Math.round(Math.min(tile.getWidth(),tile.getHeight())*.18f));
+      int inset=Math.max(1,Math.round(Math.min(tile.getWidth(),tile.getHeight())*.08f));
       Rect src=new Rect(inset,inset,tile.getWidth()-inset,tile.getHeight()-inset);
       RectF dst=new RectF(left,top,left+size,top+size);
       Paint stonePaint=new Paint();
-      stonePaint.setAntiAlias(false);stonePaint.setFilterBitmap(false);stonePaint.setDither(false);
-      stonePaint.setAlpha(light?52:34);
+      stonePaint.setAntiAlias(false);stonePaint.setFilterBitmap(false);stonePaint.setDither(false);stonePaint.setAlpha(255);
+
+      // Fixed per-square orientation breaks long diagonal seams while remaining stable every frame.
+      int rotation=stoneRotation(r,col);
+      boolean mirror=stoneMirror(r,col);
+      c.save();
+      float cx=left+size*.5f,cy=top+size*.5f;
+      c.rotate(rotation*90f,cx,cy);
+      if(mirror)c.scale(-1f,1f,cx,cy);
       c.drawBitmap(tile,src,dst,stonePaint);
+      c.restore();
 
-      // Polished-stone wash: broad, quiet tonal variation instead of sand/grain.
-      p.setColor(light?Color.argb(178,222,205,166):Color.argb(196,48,67,59));
+      // Very light wash keeps pieces readable without hiding the stone texture.
+      p.setColor(light?Color.argb(18,235,218,178):Color.argb(14,38,55,49));
       c.drawRect(dst,p);
-
-      // One restrained vein on only some squares, kept short and low-contrast.
-      int v=stoneVariant(r+2,col+1);
-      if(((r*8+col)%5)==v){
-        p.setStyle(Paint.Style.STROKE);
-        p.setStrokeWidth(Math.max(1f,size*.014f));
-        p.setColor(light?Color.argb(34,150,132,104):Color.argb(28,113,121,91));
-        Path vein=new Path();
-        vein.moveTo(left+size*.16f,top+size*.68f);
-        vein.lineTo(left+size*.38f,top+size*.56f);
-        vein.lineTo(left+size*.58f,top+size*.59f);
-        vein.lineTo(left+size*.79f,top+size*.43f);
-        c.drawPath(vein,p);
-        p.setStyle(Paint.Style.FILL);
-      }
       p.setAlpha(255);
     }
     void drawGoldSquare(Canvas c,float left,float top,float size,boolean selected){
