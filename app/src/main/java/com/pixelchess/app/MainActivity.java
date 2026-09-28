@@ -64,7 +64,7 @@ public class MainActivity extends Activity {
 
   class ChessView extends View {
     Paint p=new Paint(3); String[][] b=new String[8][8]; int sr=-1,sc=-1; boolean white=true; String status="BRANCAS JOGAM";
-    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); Bitmap boardBitmap,forestBackgroundBitmap,stoneFrameBitmap,forestClockBitmap; Paint spritePaint=new Paint(),boardPaint=new Paint(),themePaint=new Paint();
+    HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); Bitmap boardBitmap,forestBackgroundBitmap,forestClockBitmap; Paint spritePaint=new Paint(),boardPaint=new Paint(),themePaint=new Paint();
     boolean wKm=false,bKm=false,wRa=false,wRh=false,bRa=false,bRh=false,gameOver=false,flagSent=false; int epR=-1,epC=-1,halfmove=0; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece; long animStart; final long ANIM_MS=200; HashMap<String,Integer> repetitions=new HashMap<>(); long whiteMs,blackMs,lastTick,lastSyncSent; ArrayList<String> history=new ArrayList<>(); Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
     final String back="rnbqkbnr";
     ChessView(Context c){super(c); p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD)); spritePaint.setAntiAlias(false); spritePaint.setFilterBitmap(false); spritePaint.setDither(false); boardPaint.setAntiAlias(false); boardPaint.setFilterBitmap(false); boardPaint.setDither(false); themePaint.setAntiAlias(false); themePaint.setFilterBitmap(false); themePaint.setDither(false); loadPieceSprites(); loadBoardBitmap(); loadThemeBitmaps(); reset(); ticker=()->{if(!gameOver){long now=System.currentTimeMillis(),dt=now-lastTick;lastTick=now;if(white)whiteMs-=dt;else blackMs-=dt;if(whiteMs<=0||blackMs<=0){boolean loser=white;if(loser)whiteMs=0;else blackMs=0;gameOver=true;status="TEMPO • "+(loser?"PRETAS":"BRANCAS")+" VENCEM";if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(loser);}}else if(bluetoothGame&&myWhite&&now-lastSyncSent>=1000){lastSyncSent=now;sendClockSync();}invalidate();clock.postDelayed(ticker,100);}};lastTick=System.currentTimeMillis();lastSyncSent=lastTick;clock.post(ticker);}
@@ -120,10 +120,28 @@ public class MainActivity extends Activity {
       c.drawRoundRect(new RectF(left-pad+4*den,top-pad+5*den,left+board+pad+4*den,top+board+pad+5*den),8*den,8*den,p);
     }
     void drawStoneFrame(Canvas c,float left,float top,float board,float den){
-      if(stoneFrameBitmap==null)return;
       float outer=board*(512f/428f),pad=(outer-board)/2f;
-      themePaint.setAlpha(255);
-      c.drawBitmap(stoneFrameBitmap,null,new RectF(left-pad,top-pad,left+board+pad,top+board+pad),themePaint);
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(Color.rgb(72,73,63));
+      c.drawRoundRect(new RectF(left-pad,top-pad,left+board+pad,top+board+pad),7*den,7*den,p);
+      p.setColor(Color.rgb(101,100,84));
+      float block=board/8f;
+      for(int i=0;i<8;i++){
+        float x=left+i*block,y=top+i*block;
+        c.drawRect(x,top-pad,x+block-1*den,top-2*den,p);
+        c.drawRect(x,top+board+2*den,x+block-1*den,top+board+pad,p);
+        c.drawRect(left-pad,y,left-2*den,y+block-1*den,p);
+        c.drawRect(left+board+2*den,y,left+board+pad,y+block-1*den,p);
+      }
+      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,den));p.setColor(Color.rgb(43,47,40));
+      c.drawRoundRect(new RectF(left-pad,top-pad,left+board+pad,top+board+pad),7*den,7*den,p);
+      p.setStyle(Paint.Style.FILL);
+      p.setColor(Color.rgb(73,96,54));
+      for(int i=0;i<12;i++){
+        float x=left-pad+(i*37%(int)Math.max(1,outer-10*den))+5*den;
+        float y=(i%2==0)?top-pad+3*den:top+board+pad-5*den;
+        c.drawCircle(x,y,2.1f*den,p);
+      }
     }
     void drawStoneCoordinates(Canvas c,float left,float top,float board,float square,boolean flip,float den){
       float outer=board*(512f/428f),pad=(outer-board)/2f;
@@ -155,7 +173,7 @@ public class MainActivity extends Activity {
       p.setTextSize(24*getResources().getDisplayMetrics().scaledDensity);p.setColor(active?cream:Color.rgb(196,194,184));c.drawText(time,cx,t+47*den,p);
     }
     void loadBoardBitmap(){boardBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.stone_board_pixel);}
-    void loadThemeBitmaps(){forestBackgroundBitmap=loadRawBase64Bitmap(R.raw.forest_scene_bg_b64);stoneFrameBitmap=loadRawBase64Bitmap(R.raw.stone_board_frame_b64);forestClockBitmap=loadRawBase64Bitmap(R.raw.forest_clock_panel_b64);}
+    void loadThemeBitmaps(){BitmapFactory.Options o=new BitmapFactory.Options();o.inScaled=false;forestBackgroundBitmap=BitmapFactory.decodeResource(getResources(),R.drawable.forest_scene_bg,o);forestClockBitmap=loadRawBase64Bitmap(R.raw.forest_clock_panel_b64);}
     Bitmap loadRawBase64Bitmap(int resId){
       try(InputStream in=getResources().openRawResource(resId);ByteArrayOutputStream out=new ByteArrayOutputStream()){
         byte[] buf=new byte[4096];int n;while((n=in.read(buf))>0)out.write(buf,0,n);
