@@ -62,14 +62,17 @@ public class MainActivity extends Activity {
       super.onDraw(c);c.drawColor(bg);float w=getWidth(),s=w/8f;float top=Math.max(150*getResources().getDisplayMetrics().density,(getHeight()-w)/2f-30*getResources().getDisplayMetrics().density);
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
       boolean flip=bluetoothGame&&!myWhite;
-      for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;p.setColor(((r+x)&1)==0?cream:green);c.drawRect(vx*s,top+vr*s,(vx+1)*s,top+(vr+1)*s,p);
+      for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;drawStoneSquare(c,r,x,vx*s,top+vr*s,s,((r+x)&1)==0);
         String squarePiece=b[r][x];
         if(squarePiece!=null&&Character.toLowerCase(squarePiece.charAt(0))=='k'&&inCheck(isWhite(squarePiece))){
           p.setColor(gameOver?Color.rgb(198,40,40):Color.rgb(245,124,0));
           c.drawRect(vx*s,top+vr*s,(vx+1)*s,top+(vr+1)*s,p);
         }
-        if(r==sr&&x==sc){p.setColor(0x88FFD54F);c.drawRect(vx*s,top+vr*s,(vx+1)*s,top+(vr+1)*s,p);}
-        if(sr>=0&&legal(sr,sc,r,x,true)){p.setColor(0x66000000);c.drawCircle(vx*s+s/2,top+vr*s+s/2,s*.12f,p);}
+        if(r==sr&&x==sc)drawGoldSquare(c,vx*s,top+vr*s,s,true);
+        if(sr>=0&&legal(sr,sc,r,x,true)){
+          if(b[r][x]!=null)drawGoldSquare(c,vx*s,top+vr*s,s,false);
+          else drawGoldMoveMarker(c,vx*s,top+vr*s,s);
+        }
         String q=b[r][x];if(q!=null&&!(animating&&r==animR2&&x==animC2))drawPieceSprite(c,q,vx*s,top+vr*s,s);
       }
       if(animating){float t=Math.min(1f,(System.currentTimeMillis()-animStart)/(float)ANIM_MS);float u=1f-(1f-t)*(1f-t);int fr=flip?7-animR1:animR1,fc=flip?7-animC1:animC1,tr=flip?7-animR2:animR2,tc=flip?7-animC2:animC2;float ax=(fc+(tc-fc)*u)*s,ay=top+(fr+(tr-fr)*u)*s;drawPieceSprite(c,animPiece,ax,ay,s);if(t<1f)postInvalidateOnAnimation();else animating=false;}
@@ -85,6 +88,44 @@ public class MainActivity extends Activity {
       p.setTextSize(26*getResources().getDisplayMetrics().scaledDensity);p.setColor(cream);c.drawText(clockText(bottomMs),w/2,top+w+72*den,p);
       p.setTextSize(12*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.GRAY);String h=history.isEmpty()?"JOGADAS • nenhuma":historyLine();c.drawText(h,w/2,Math.min(getHeight()-48*den,top+w+108*den),p);
       p.setTextSize(10*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.DKGRAY);c.drawText("PIXEL CHESS",w/2,Math.min(getHeight()-20*den,top+w+134*den),p);
+    }
+    int mixColor(int a,int b,float t){
+      return Color.rgb((int)(Color.red(a)+(Color.red(b)-Color.red(a))*t),(int)(Color.green(a)+(Color.green(b)-Color.green(a))*t),(int)(Color.blue(a)+(Color.blue(b)-Color.blue(a))*t));
+    }
+    int stoneHash(int r,int c,int n){int z=r*92821+c*68917+n*31337+0x5f3759df;z^=z>>>13;z*=1274126177;return z^(z>>>16);}
+    void drawStoneSquare(Canvas c,int r,int col,float left,float top,float size,boolean light){
+      int base=light?Color.rgb(211,196,158):Color.rgb(61,76,65);
+      int hi=light?Color.rgb(229,216,181):Color.rgb(76,91,76);
+      int lo=light?Color.rgb(188,171,137):Color.rgb(48,61,54);
+      p.setStyle(Paint.Style.FILL);p.setColor(base);c.drawRect(left,top,left+size,top+size,p);
+      float unit=Math.max(2f,(float)Math.floor(size/18f));
+      for(int n=0;n<13;n++){
+        int h=stoneHash(r,col,n),gx=Math.floorMod(h,15),gy=Math.floorMod(h>>>8,15);
+        float x=left+gx*size/15f,y=top+gy*size/15f;
+        p.setColor((h&1)==0?hi:lo);p.setAlpha(light?42:48);
+        c.drawRect(x,y,x+unit*(1+Math.floorMod(h>>>16,2)),y+unit,p);
+      }
+      int crack=stoneHash(r,col,91);
+      if(Math.floorMod(crack,5)==0){
+        p.setAlpha(light?48:58);p.setColor(lo);p.setStrokeWidth(Math.max(1f,unit*.45f));p.setStyle(Paint.Style.STROKE);
+        float x1=left+size*(.18f+Math.floorMod(crack>>>5,35)/100f),y1=top+size*.08f;
+        float x2=left+size*(.42f+Math.floorMod(crack>>>11,25)/100f),y2=top+size*.48f;
+        float x3=left+size*(.32f+Math.floorMod(crack>>>17,38)/100f),y3=top+size*.92f;
+        c.drawLine(x1,y1,x2,y2,p);c.drawLine(x2,y2,x3,y3,p);
+      }
+      p.setAlpha(255);p.setStyle(Paint.Style.FILL);
+    }
+    void drawGoldSquare(Canvas c,float left,float top,float size,boolean selected){
+      p.setStyle(Paint.Style.FILL);p.setColor(selected?Color.argb(118,255,193,37):Color.argb(105,222,158,35));
+      c.drawRect(left,top,left+size,top+size,p);
+      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(2f,size*.035f));p.setColor(selected?Color.rgb(255,205,66):Color.rgb(218,157,42));
+      float in=Math.max(2f,size*.035f);c.drawRect(left+in,top+in,left+size-in,top+size-in,p);p.setStyle(Paint.Style.FILL);
+    }
+    void drawGoldMoveMarker(Canvas c,float left,float top,float size){
+      float cx=left+size/2f,cy=top+size/2f,d=size*.105f;
+      Path diamond=new Path();diamond.moveTo(cx,cy-d);diamond.lineTo(cx+d,cy);diamond.lineTo(cx,cy+d);diamond.lineTo(cx-d,cy);diamond.close();
+      p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(218,174,75));c.drawPath(diamond,p);
+      p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,size*.018f));p.setColor(Color.rgb(247,214,132));c.drawPath(diamond,p);p.setStyle(Paint.Style.FILL);
     }
     void loadPieceSprites(){
       pieceSprites.put('P',cleanDisconnectedSprite(R.drawable.w_pawn));
