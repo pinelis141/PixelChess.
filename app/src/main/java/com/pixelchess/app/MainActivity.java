@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
     }
   }
   ThemeAssets themeAssets(){
-    if(selectedTheme.equals("forest"))return new ThemeAssets(R.drawable.forest_scene_bg,0,0,R.drawable.stone_board_pixel,R.drawable.forest_clock_panel);
+    if(selectedTheme.equals("forest"))return new ThemeAssets(R.drawable.forest_scene_bg,R.drawable.forest_ground_ring,0,R.drawable.stone_board_pixel,R.drawable.forest_clock_panel);
     return new ThemeAssets(0,0,0,R.drawable.stone_board_pixel,0);
   }
 
