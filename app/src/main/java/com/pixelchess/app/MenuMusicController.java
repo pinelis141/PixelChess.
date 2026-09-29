@@ -48,7 +48,9 @@ final class MenuMusicController {
 
   private void ensurePlayer(){
     if(player!=null)return;
-    player=MediaPlayer.create(context,R.raw.the_quiet_gambit_loop);
+    int resId=context.getResources().getIdentifier("the_quiet_gambit_loop","raw",context.getPackageName());
+    if(resId==0)return;
+    player=MediaPlayer.create(context,resId);
     if(player!=null){
       player.setLooping(true);
       player.setVolume(VOLUME,VOLUME);
