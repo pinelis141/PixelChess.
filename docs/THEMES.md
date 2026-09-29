@@ -15,7 +15,7 @@ Novos temas devem usar IDs permanentes, nunca a posição na lista.
 
 ## Floresta Ancestral
 
-Os arquivos `forest_board.webp` e `forest_frame.webp` permanecem byte a byte iguais.
+O arquivo `forest_board.webp` permanece byte a byte igual. A versão 0.15.0 usa uma nova moldura de pedra (`forest_stone_frame.webp`); o antigo `forest_frame.webp` permanece no repositório para recuperação.
 A margem externa passou de 14 dp para 14,98 dp (+7%). Isso aumenta a margem,
 não o tamanho do tabuleiro nem a espessura uniforme de todos os detalhes do asset.
 A margem continua limitada ao espaço disponível na tela.
@@ -56,3 +56,25 @@ Checklist no aparelho antes de congelar a Floresta:
 - Retorno ao menu sem callback de relógio da View descartada.
 
 A aprovação visual no aparelho ainda é necessária: esta versão não congela a skin automaticamente.
+
+## Integração da referência aprovada — 0.15.0
+
+Assets gerados separadamente a partir da prévia aprovada com ImageGen:
+
+| Recurso | Dimensões | Canal alpha | Uso |
+|---|---|---|---|
+| forest_floor.webp | 887 × 1774 | opaco | chão contínuo, sem interface |
+| forest_stone_frame.webp | 1254 × 1254 | transparente | oito trechos de pedra em volta do board |
+| forest_clock_plaque.webp | 2172 × 724 | transparente | placa vazia, sem texto ou números |
+
+A conversão PNG → WebP é lossless, conferida pixel a pixel. Os originais gerados
+não foram recortados ou retocados. O centro da moldura é transparente.
+Os limites de amostragem da moldura são declarados em `BoardThemes`; as oito
+regiões são mapeadas exclusivamente para fora do retângulo jogável.
+
+O fundo usa center-crop proporcional e leve escurecimento. As placas são reutilizadas
+nos dois relógios, com texto dinâmico e tonalidade quente na vez do jogador.
+Relógios e mensagens agora usam o centro real da tela. A skin Tradicional conserva
+seu painel original. O histórico recebeu contraste maior sobre a textura.
+
+Verificação no aparelho ainda necessária para aprovar o encaixe visual final.

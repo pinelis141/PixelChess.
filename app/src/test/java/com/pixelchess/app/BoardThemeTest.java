@@ -4,6 +4,18 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class BoardThemeTest {
+  @Test(expected=IllegalArgumentException.class) public void rejectOverlappingFrameRegions() {
+    new BoardTheme.FrameSlices(0,0,20,20,10,80,100,100);
+  }
+  @Test public void forestDecorationsAreSeparateFromBoard() {
+    assertEquals(R.drawable.forest_board,BoardThemes.FOREST.boardRes);
+    assertNotEquals(0,BoardThemes.FOREST.backgroundRes);
+    assertNotEquals(0,BoardThemes.FOREST.clockRes);
+    assertNotNull(BoardThemes.FOREST.frameSlices);
+    assertEquals(0,BoardThemes.CLASSIC.backgroundRes);
+    assertEquals(0,BoardThemes.CLASSIC.clockRes);
+  }
+
   @Test public void savedSelectionsSurviveMigrationAndUnknownIds() {
     assertSame(BoardThemes.FOREST, BoardThemes.fromLegacyIndex(1));
     assertSame(BoardThemes.CLASSIC, BoardThemes.fromLegacyIndex(99));
