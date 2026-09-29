@@ -4,6 +4,21 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class BoardThemeTest {
+  @Test public void builderCreatesIndependentImmutableThemes() {
+    BoardTheme.Builder builder=BoardTheme.builder("sample","Sample",1);
+    BoardTheme first=builder.build();
+    BoardTheme second=builder.background(2,0x25000000).build();
+    assertEquals(0,first.backgroundRes);
+    assertEquals(2,second.backgroundRes);
+    assertFalse(first.glow.animated());
+  }
+  @Test(expected=IllegalArgumentException.class) public void rejectClockAssetWithoutAppearance() {
+    BoardTheme.builder("sample","Sample",1).clock(2,null).build();
+  }
+  @Test(expected=IllegalArgumentException.class) public void rejectFrameSlicesWithoutAsset() {
+    BoardTheme.builder("sample","Sample",1).frame(0,10,new BoardTheme.FrameSlices(0,0,10,10,90,90,100,100)).build();
+  }
+
   @Test(expected=IllegalArgumentException.class) public void rejectOverlappingFrameRegions() {
     new BoardTheme.FrameSlices(0,0,20,20,10,80,100,100);
   }

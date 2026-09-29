@@ -8,25 +8,19 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Rect;
-import android.graphics.RadialGradient;
-import android.graphics.Shader;
-import android.graphics.LightingColorFilter;
-import android.os.SystemClock;
 
 /** Owns theme bitmaps and decoration; never reads or changes match state. */
 public final class BoardThemeRenderer {
   private final BoardTheme theme;
-  private final Bitmap board, frame, background, clock;
+  private final Bitmap board, frame, background;
+  private final ThemeClockRenderer clocks;
+  private final ThemeEffectRenderer effects;
   private final Rect source = new Rect();
   private final int[] frameX, frameY;
   private final float[] targetX = new float[4], targetY = new float[4];
-  private final LightingColorFilter activeTint = new LightingColorFilter(0xffffe4af, 0x00140d00);
-  private final Paint clockText = new Paint(Paint.ANTI_ALIAS_FLAG);
-  private final Paint auraPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint bitmapPaint = new Paint();
   private final Paint effectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final RectF rect = new RectF();
-  private final long startedAt = SystemClock.uptimeMillis();
 
   public BoardThemeRenderer(Resources resources, BoardTheme theme) {
     this.theme = theme;
@@ -35,13 +29,12 @@ public final class BoardThemeRenderer {
     board = BitmapFactory.decodeResource(resources, theme.boardRes, options);
     frame = theme.frameRes == 0 ? null : BitmapFactory.decodeResource(resources, theme.frameRes, options);
     background = theme.backgroundRes == 0 ? null : BitmapFactory.decodeResource(resources, theme.backgroundRes, options);
-    clock = theme.clockRes == 0 ? null : BitmapFactory.decodeResource(resources, theme.clockRes, options);
+    Bitmap clock = theme.clockRes == 0 ? null : BitmapFactory.decodeResource(resources, theme.clockRes, options);
     BoardTheme.FrameSlices f=theme.frameSlices;
     frameX=f==null?null:new int[]{f.outerLeft,f.innerLeft,f.innerRight,f.outerRight};
     frameY=f==null?null:new int[]{f.outerTop,f.innerTop,f.innerBottom,f.outerBottom};
-    clockText.setTypeface(android.graphics.Typeface.create(android.graphics.Typeface.MONOSPACE,android.graphics.Typeface.BOLD));
-    clockText.setTextAlign(Paint.Align.CENTER);
-    auraPaint.setShader(new RadialGradient(0,0,1,new int[]{0x00e6bc55,0x00e6bc55,0x35e6bc55,0x00e6bc55},new float[]{0f,0.65f,0.82f,1f},Shader.TileMode.CLAMP));
+    clocks=new ThemeClockRenderer(clock,theme.clockAppearance);
+    effects=new ThemeEffectRenderer(theme.glow);
     bitmapPaint.setFilterBitmap(false);
     bitmapPaint.setAntiAlias(false);
     bitmapPaint.setDither(false);
@@ -64,28 +57,7 @@ public final class BoardThemeRenderer {
         }
       }
     }
-    if (theme.glow.effect == BoardTheme.Effect.FIREFLIES && theme.glow.intensity > 0 && margin > 0) {
-      // Clip both layers of every particle out of all 64 playable squares.
-      int save = canvas.save();
-      canvas.clipOutRect(left, top, left+size, top+size);
-      double seconds = (SystemClock.uptimeMillis()-startedAt) / 1000.0 * theme.glow.speed;
-      for (int i=0; i<FireflyMotion.COUNT; i++) {
-        float distance = margin * FireflyMotion.distance(i, seconds);
-        float x = FireflyMotion.left(i) ? left-distance : left+size+distance;
-        float y = top+size*FireflyMotion.height(i, seconds);
-        float light = theme.glow.intensity*FireflyMotion.brightness(i, seconds);
-        float radius = (2.4f + (i%3)*0.45f)*density;
-        for (int layer=3; layer>=1; layer--) {
-          effectPaint.setColor(theme.glow.color);
-          effectPaint.setAlpha(Math.round(12*light*(4-layer)));
-          canvas.drawCircle(x, y, radius*layer/2f, effectPaint);
-        }
-        effectPaint.setAlpha(Math.round(190*light));
-        float dot = Math.max(1f, density*0.65f);
-        canvas.drawRect(x-dot/2, y-dot/2, x+dot/2, y+dot/2, effectPaint);
-      }
-      canvas.restoreToCount(save);
-    }
+    effects.draw(canvas,left,top,size,density,margin);
     rect.set(left, top, left+size, top+size);
     if (board != null) canvas.drawBitmap(board, null, rect, bitmapPaint);
     else {
@@ -111,29 +83,13 @@ public final class BoardThemeRenderer {
     float w=background.getWidth()*scale,h=background.getHeight()*scale;
     rect.set((width-w)/2f,(height-h)/2f,(width+w)/2f,(height+h)/2f);
     canvas.drawBitmap(background,null,rect,bitmapPaint);
-    canvas.drawColor(0x25000000);
+    canvas.drawColor(theme.backgroundShade);
   }
 
-  /** Returns false when the caller should draw its traditional clock panel. */
-  public boolean drawClock(Canvas canvas,float cx,float cy,String name,String time,boolean active,
-                           float density,float scaledDensity,float viewWidth) {
-    if(clock==null) return false;
-    float width=Math.min(190*density,viewWidth*0.54f),height=width/3f;
-    if(active) {
-      int save=canvas.save();canvas.translate(cx,cy);canvas.scale(width*0.6f,height*0.7f);
-      canvas.drawCircle(0,0,1,auraPaint);canvas.restoreToCount(save);
-    }
-    rect.set(cx-width/2,cy-height/2,cx+width/2,cy+height/2);
-    bitmapPaint.setColorFilter(active?activeTint:null);
-    canvas.drawBitmap(clock,null,rect,bitmapPaint);
-    bitmapPaint.setColorFilter(null);
-    clockText.setColor(active?0xffffe7a7:0xffcecec5);
-    clockText.setTextSize(Math.min(11*scaledDensity,height*0.18f));
-    canvas.drawText(name,cx,cy-height*0.17f,clockText);
-    clockText.setTextSize(Math.min(25*scaledDensity,height*0.40f));
-    canvas.drawText(time,cx,cy+height*0.28f,clockText);
-    return true;
+  public void drawClock(Canvas canvas,float cx,float cy,String name,String time,boolean active,
+                        float density,float scaledDensity,float viewWidth){
+    clocks.draw(canvas,cx,cy,name,time,active,density,scaledDensity,viewWidth);
   }
   public boolean hasBackground() { return background!=null; }
-  public boolean animated() { return theme.glow.animated(); }
+  public boolean animated() { return effects.animated(); }
 }

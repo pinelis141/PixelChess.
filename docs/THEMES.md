@@ -78,3 +78,30 @@ Relógios e mensagens agora usam o centro real da tela. A skin Tradicional conse
 seu painel original. O histórico recebeu contraste maior sobre a textura.
 
 Verificação no aparelho ainda necessária para aprovar o encaixe visual final.
+
+## Sistema consolidado — 0.16.0
+
+A Floresta 0.15.0 foi aprovada visualmente pelo usuário no S23 Ultra em 29/09/2026.
+`forest-baseline.json` registra o commit e hashes dos quatro assets ativos; a CI
+confere esses arquivos antes da compilação. Uma revisão visual futura deve atualizar
+explicitamente essa referência após aprovação.
+
+Responsabilidades:
+
+- `BoardTheme.Builder`: configura recursos, tintas, moldura, efeito e aparência dos relógios com argumentos nomeados.
+- `BoardThemes`: registro dos temas disponíveis. Adicionar um tema aqui o inclui no seletor atual.
+- `BoardThemeRenderer`: compõe fundo, moldura e tabuleiro e delega relógios/efeitos.
+- `ThemeClockRenderer`: placas ilustradas e fallback tradicional, com Paint próprio.
+- `ThemeEffectRenderer`: efeitos decorativos com clipping fora das casas e Paint próprio.
+- `ThemePreferences`: persistência pelo ID e leitura compatível da preferência antiga.
+
+Para adicionar um tema: produzir os assets no contrato existente, declarar uma entrada
+no registro com `BoardTheme.builder(...)`, configurar o efeito e a aparência dos relógios,
+e incluí-la em `ALL`. Não inserir condições por nome de skin no `MainActivity`.
+Novos tipos de efeito serão implementados em `ThemeEffectRenderer`; hoje existem
+NONE e FIREFLIES. Lava e gelo serão desenvolvidos junto dos respectivos temas.
+
+A extração mantém os valores visuais aprovados da Floresta. A refatoração completa
+de ChessView, regras, Bluetooth e relógio da partida continua no backlog.
+A próxima entrega visual é Castelo Medieval, produzido asset por asset, seguido
+de seletor por miniaturas. Não há skins futuras fictícias ou bloqueios no produto atual.

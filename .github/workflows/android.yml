@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, feature/forest-skin-test, feature/forest-theme-foundation ]
+    branches: [ main, feature/forest-skin-test, feature/forest-theme-foundation, refactor/theme-system ]
 
 jobs:
   build:
@@ -18,6 +18,9 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.7'
+
+      - name: Verify approved Forest assets
+        run: python3 tools/verify_forest_assets.py
 
       - name: Build debug APK
         run: gradle :app:testDebugUnitTest :app:assembleDebug
