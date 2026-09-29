@@ -15,6 +15,9 @@ public final class BoardThemeRenderer {
   private final Bitmap board, frame, background;
   private final ThemeClockRenderer clocks;
   private final ThemeEffectRenderer effects;
+  private final TorchRenderer torches;
+  private final SceneGeometry geometry=new SceneGeometry();
+  private float sceneWidth;
   private final Rect source = new Rect();
   private final int[] frameX, frameY;
   private final float[] targetX = new float[4], targetY = new float[4];
@@ -35,6 +38,7 @@ public final class BoardThemeRenderer {
     frameY=f==null?null:new int[]{f.outerTop,f.innerTop,f.innerBottom,f.outerBottom};
     clocks=new ThemeClockRenderer(clock,theme.clockAppearance);
     effects=new ThemeEffectRenderer(theme.glow);
+    torches=new TorchRenderer(theme);
     bitmapPaint.setFilterBitmap(false);
     bitmapPaint.setAntiAlias(false);
     bitmapPaint.setDither(false);
@@ -58,6 +62,7 @@ public final class BoardThemeRenderer {
       }
     }
     effects.draw(canvas,left,top,size,density,margin);
+    torches.draw(canvas,geometry,sceneWidth,density);
     rect.set(left, top, left+size, top+size);
     if (board != null) canvas.drawBitmap(board, null, rect, bitmapPaint);
     else {
@@ -76,15 +81,35 @@ public final class BoardThemeRenderer {
         canvas.drawRect(left+col*size/8, top+row*size/8, left+(col+1)*size/8, top+(row+1)*size/8, effectPaint);
     }
   }
-  public void drawBackground(Canvas canvas, int width, int height, int fallback) {
+  public void drawBackground(Canvas canvas, int width, int height, int fallback, float density) {
+    geometry.update(width,height,density,theme.scene!=null);
+    sceneWidth=width;
     canvas.drawColor(fallback);
     if(background==null || width<=0 || height<=0) return;
+    if(theme.scene!=null) {
+      int cutTop=Math.round(background.getHeight()*theme.scene.boardTop);
+      int cutBottom=Math.round(background.getHeight()*theme.scene.boardBottom);
+      drawSceneRegion(canvas,0,cutTop,0,geometry.upperEnd,width);
+      drawSceneRegion(canvas,cutTop,cutBottom,geometry.upperEnd,geometry.lowerStart,width);
+      drawSceneRegion(canvas,cutBottom,background.getHeight(),geometry.lowerStart,height,width);
+      canvas.drawColor(theme.backgroundShade);
+      return;
+    }
     float scale=Math.max(width/(float)background.getWidth(),height/(float)background.getHeight());
     float w=background.getWidth()*scale,h=background.getHeight()*scale;
     rect.set((width-w)/2f,(height-h)/2f,(width+w)/2f,(height+h)/2f);
     canvas.drawBitmap(background,null,rect,bitmapPaint);
     canvas.drawColor(theme.backgroundShade);
   }
+
+  private void drawSceneRegion(Canvas canvas,int sourceTop,int sourceBottom,float top,float bottom,int width) {
+    source.set(0,sourceTop,background.getWidth(),sourceBottom);
+    rect.set(0,top,width,bottom);
+    canvas.drawBitmap(background,source,rect,bitmapPaint);
+  }
+  public boolean hasScene() { return theme.scene!=null; }
+  public float topClockY(float defaultY) { return hasScene()?geometry.mapY(theme.scene.topClock,theme.scene):defaultY; }
+  public float topClockScale(float density) { return hasScene()?Math.min(1f,geometry.upperEnd/(170*density)):1f; }
 
   public void drawClock(Canvas canvas,float cx,float cy,String name,String time,boolean active,
                         float density,float scaledDensity,float viewWidth){

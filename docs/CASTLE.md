@@ -49,3 +49,19 @@ seu overlay usa alpha 24 em vez de 101. Conversão WebP lossless verificada.
 O piso antigo fica disponível no histórico/repositório; não é utilizado pelo tema.
 Board, moldura, relógios e regras permanecem na versão anterior.
 Esta correção ainda requer validação visual no aparelho.
+
+## 0.18.0 — throne-room reference and animated lighting
+
+The user selected the king-facing-player reference on 2026-09-29 and authorized implementation with animated torches and lighting. `castle_throne_scene.webp` is a separate environment plate; the approved `castle_board.webp`, frame and piece sprites are unchanged. The king faces the player while the playable grid remains a square orthographic 8×8.
+
+The scene is rendered in three vertical regions, with source boundaries at y=450 and y=1294 of the 887×1774 plate. These follow the board frame instead of center-cropping the king. Torch anchors use the same mapping. The upper clock sits in the banner area, above the crown; turn/check/end status moves below the lower clock. On short portrait screens the square board shrinks to reserve space for the scene and HUD; hit testing uses the same geometry as rendering. Classic and Forest retain their original board layout.
+
+Four pixel flames animate with independent phases and continuous bounded motion. Warm radial illumination varies with the fire, with two faint embers per brazier. All effects are clipped out of the 64 playable squares. Paints and shaders are reused; no bitmaps or shaders are created per frame. The existing visible-view redraw cadence is 50 ms. Glow color, intensity and speed remain theme parameters; speed zero freezes motion and intensity zero removes the effects. No changes to game rules, Bluetooth or timer accounting.
+
+Validation: scene/clock/torch geometry tests at 320×480, 360×640, 393×760, 412×870 and 600×960 logical pixels; one-hour sampling of animation bounds, continuity and phase separation; original Forest geometry regression; immutable scene anchors and invalid configuration tests. Actual visual quality and device performance still require handset review.
+
+### Asset provenance
+
+Created with the built-in image-generation tool using the user's attached reference for style and composition. Converted to lossless WebP without creative post-processing. Final resource: `app/src/main/res/drawable-nodpi/castle_throne_scene.webp`.
+
+Production prompt: a full-bleed 1:2 portrait pixel-art throne room, bearded crowned king with fur mantle centered facing the player above a blank charcoal tabletop, crimson lion banners, stone walls, four ember-only braziers, guards and red carpet below. No board, pieces, clocks, plaques, letters, numbers or UI baked into the environment. Warm amber edge lighting with cool shadows. Leave upper-center banner space for the runtime clock; animate the torch flames in the engine.

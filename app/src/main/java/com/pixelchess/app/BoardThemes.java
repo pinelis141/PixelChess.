@@ -20,7 +20,11 @@ public final class BoardThemes {
       .build();
   public static final BoardTheme CASTLE = BoardTheme.builder("castle", "Castelo Medieval", R.drawable.castle_board)
       .frame(R.drawable.castle_frame,14f*1.07f,new BoardTheme.FrameSlices(74,76,162,177,1092,1077,1180,1175))
-      .background(R.drawable.castle_hall,0x18000000)
+      .background(R.drawable.castle_throne_scene,0x10000000)
+      .scene(new BoardTheme.Scene(450f/1774f,1294f/1774f,135f/1774f,
+          new BoardTheme.Torch(61f/887f,239f/1774f),new BoardTheme.Torch(825f/887f,239f/1774f),
+          new BoardTheme.Torch(27f/887f,1335f/1774f),new BoardTheme.Torch(860f/887f,1335f/1774f)))
+      .glow(new BoardTheme.Glow(BoardTheme.Effect.TORCHES,0xffffa342,0.72f,1f))
       .overlays(0x0a000000,0)
       .clock(R.drawable.castle_clock_plaque,new BoardTheme.ClockAppearance(190f,3f,
           0xffffe5b1,0xffcbd2dc,0xffffe8c0,0x00120a00,0x30d9a852))
