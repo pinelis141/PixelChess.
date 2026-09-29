@@ -38,3 +38,14 @@ Não foi necessário adicionar nenhuma condição de Castelo ao MainActivity.
   leitura dos relógios e coordenadas, e teste em tela menor.
 - Conferir alternância entre as três skins e seleção persistida após reiniciar.
 - O seletor por miniaturas permanece uma entrega futura do backlog.
+
+## Correção de cenário — 0.17.1
+
+Feedback: o tabuleiro foi aprovado, mas o piso não comunicava um castelo.
+O background ativo passou a `castle_hall.webp` (887 × 1774), salão com arcos,
+estandartes, tochas e portal. Elementos reconhecíveis ficam no topo e no rodapé,
+fora da área coberta pelo tabuleiro. A imagem já possui áreas escuras, por isso
+seu overlay usa alpha 24 em vez de 101. Conversão WebP lossless verificada.
+O piso antigo fica disponível no histórico/repositório; não é utilizado pelo tema.
+Board, moldura, relógios e regras permanecem na versão anterior.
+Esta correção ainda requer validação visual no aparelho.
