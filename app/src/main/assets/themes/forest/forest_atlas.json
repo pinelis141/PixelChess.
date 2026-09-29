@@ -1,0 +1,58 @@
+{
+  "theme": "forest",
+  "version": 1,
+  "layers": [
+    "background",
+    "ground",
+    "frame",
+    "board",
+    "pieces",
+    "ui",
+    "decor"
+  ],
+  "resources": {
+    "clock_panel": "@drawable/forest_clock_panel",
+    "board": "@drawable/stone_board_pixel",
+    "light_tiles": [
+      "@drawable/stone_light_01",
+      "@drawable/stone_light_02",
+      "@drawable/stone_light_03"
+    ],
+    "dark_tiles": [
+      "@drawable/stone_dark_01",
+      "@drawable/stone_dark_02",
+      "@drawable/stone_dark_03"
+    ]
+  },
+  "atlas_modules": {
+    "trees": [
+      "pine_a",
+      "pine_b",
+      "pine_c"
+    ],
+    "rocks": [
+      "rock_a",
+      "rock_b",
+      "rock_c"
+    ],
+    "foliage": [
+      "bush_a",
+      "bush_b"
+    ],
+    "props": [
+      "stump",
+      "lantern_post",
+      "fence"
+    ],
+    "ui": [
+      "wood_panel_compact",
+      "wood_panel_wide"
+    ]
+  },
+  "placement": {
+    "frame_safe_inset_pct": 4.5,
+    "decor_outer_band_pct": 11.5,
+    "clock_panel_aspect": 2.75
+  },
+  "notes": "Descriptor only. MainActivity intentionally unchanged; renderer wiring happens after visual asset approval."
+}
