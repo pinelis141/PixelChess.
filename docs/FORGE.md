@@ -24,3 +24,9 @@ Paints, shaders and emissive masks are reused. Effects use the existing 50 ms vi
 User reported the animation was not visible on-device. Redraw scheduling was present, but the original translucent highlight had low contrast against baked emissive artwork. Replace nested ComposeShader masking with explicit SRC_IN layer compositing and a moving dark-red-to-hot-yellow pattern. Increase decorative effect strength and furnace pulse range. Existing channels, asset pixels and board geometry are unchanged.
 
 Add a Robolectric native-graphics rendering regression: actual rendered pixels must differ between t=0 and t=2 for horizontal and vertical flow; t=8 must match t=0; cold stone pixels must remain unchanged and intensity=0 must reproduce the base art. This validates image changes in Android native software rendering; the physical device's hardware renderer still needs review.
+
+## 0.19.2 — directional molten surface
+
+The user's device recording confirmed furnace pulsing but showed that moving brightness alone did not read as flowing lava. Frame, clock and lateral-feed channels now contain a cached repeating pixel texture with dark cooled patches and elongated incandescent details, advected at 48 source pixels per second. The surface travels down vertical channels and across horizontal channels, restricted to the existing approved hot-pixel mask. Fixed stone/metal and the furnace's accepted ember shimmer are preserved.
+
+The eight-second wrap moves exactly one texture period. A native-rendered regression checks that the same surface features move 24 pixels after 0.5 seconds in both directions, rather than only changing brightness. A phone-scale filmstrip of the approved frame is emitted by the graphics test for visual inspection. No per-frame texture generation or changes to approved asset files.

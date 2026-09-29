@@ -1,7 +1,8 @@
 plugins { id 'com.android.application' }
 android { namespace 'com.pixelchess.app'; compileSdk 35
- defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 21; versionName '0.19.1' }
+ defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 22; versionName '0.19.2' }
  buildFeatures { buildConfig true }
+ testOptions { unitTests.all { testLogging.showStandardStreams = true } }
 }
 
 dependencies {

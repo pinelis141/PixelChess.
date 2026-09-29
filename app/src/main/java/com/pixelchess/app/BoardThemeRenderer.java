@@ -119,7 +119,7 @@ public final class BoardThemeRenderer {
     if(backgroundLava!=null) {
       int save=canvas.save();
       canvas.clipOutRect(geometry.left,geometry.top,geometry.left+geometry.size,geometry.top+geometry.size);
-      backgroundLava.draw(canvas,source,rect,effectSeconds(),false,theme.glow.intensity*(sourceTop==0?LavaMotion.furnace(effectSeconds()):1f));
+      backgroundLava.draw(canvas,source,rect,effectSeconds(),false,theme.glow.intensity*(sourceTop==0?LavaMotion.furnace(effectSeconds()):1f),sourceTop!=0);
       canvas.restoreToCount(save);
     }
   }
