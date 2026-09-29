@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <dimen name="forest_frame_inset">4dp</dimen>
+    <dimen name="forest_decor_safe_gap">8dp</dimen>
+    <dimen name="forest_clock_padding_horizontal">18dp</dimen>
+    <dimen name="forest_clock_padding_vertical">8dp</dimen>
+</resources>
