@@ -18,7 +18,14 @@ public final class BoardThemes {
       .clock(R.drawable.forest_clock_plaque,new BoardTheme.ClockAppearance(190f,3f,
           0xffffe7a7,0xffcecec5,0xffffe4af,0x00140d00,0x35e6bc55))
       .build();
-  public static final List<BoardTheme> ALL = Collections.unmodifiableList(Arrays.asList(CLASSIC, FOREST));
+  public static final BoardTheme CASTLE = BoardTheme.builder("castle", "Castelo Medieval", R.drawable.castle_board)
+      .frame(R.drawable.castle_frame,14f*1.07f,new BoardTheme.FrameSlices(74,76,162,177,1092,1077,1180,1175))
+      .background(R.drawable.castle_floor,0x65000000)
+      .overlays(0x0a000000,0)
+      .clock(R.drawable.castle_clock_plaque,new BoardTheme.ClockAppearance(190f,3f,
+          0xffffe5b1,0xffcbd2dc,0xffffe8c0,0x00120a00,0x30d9a852))
+      .build();
+  public static final List<BoardTheme> ALL = Collections.unmodifiableList(Arrays.asList(CLASSIC, FOREST, CASTLE));
   public static BoardTheme find(String id) {
     for (BoardTheme theme : ALL) if (theme.id.equals(id)) return theme;
     return CLASSIC;
