@@ -2,7 +2,7 @@ package com.pixelchess.app;
 
 /** Immutable visual configuration. IDs are stable saved preferences, never list indices. */
 public final class BoardTheme {
-  public enum Effect { NONE, FIREFLIES, TORCHES }
+  public enum Effect { NONE, FIREFLIES, TORCHES, LAVA }
   public final String id, name;
   public final int boardRes, frameRes, boardTint, darkSquareTint;
   public final float frameMarginDp;
@@ -10,15 +10,19 @@ public final class BoardTheme {
   public final int backgroundRes, clockRes;
   public final FrameSlices frameSlices;
   public final Scene scene;
+  public final Torch furnace;
 
   /** Normalized source coordinates. Scene regions follow the board instead of screen cropping. */
   public static final class Scene {
-    public final float boardTop, boardBottom, topClock;
+    public final float boardTop, boardBottom, topClock, topClockX;
     public final java.util.List<Torch> torches;
     public Scene(float boardTop,float boardBottom,float topClock,Torch... torches) {
+      this(boardTop,boardBottom,topClock,.5f,torches);
+    }
+    public Scene(float boardTop,float boardBottom,float topClock,float topClockX,Torch... torches) {
       if (!(boardTop>0 && boardTop<boardBottom && boardBottom<1 && topClock>0 && topClock<boardTop)
-          || torches==null) throw new IllegalArgumentException("Invalid scene regions");
-      this.boardTop=boardTop;this.boardBottom=boardBottom;this.topClock=topClock;
+          || !(topClockX>0 && topClockX<1) || torches==null) throw new IllegalArgumentException("Invalid scene regions");
+      this.boardTop=boardTop;this.boardBottom=boardBottom;this.topClock=topClock;this.topClockX=topClockX;
       java.util.ArrayList<Torch> copy=new java.util.ArrayList<>();
       for(Torch torch:torches) {
         if(torch==null || (torch.y>=boardTop && torch.y<=boardBottom))
@@ -76,13 +80,14 @@ public final class BoardTheme {
     if(b.id==null || !b.id.matches("[a-z][a-z0-9_]*") || b.name==null || b.name.trim().isEmpty()
         || b.boardRes==0 || b.glow==null || !Float.isFinite(b.frameMarginDp) || b.frameMarginDp<0
         || (b.scene!=null && b.backgroundRes==0)
+        || (b.furnace!=null && (b.scene==null || b.furnace.y>=b.scene.boardTop))
         || (b.glow.effect==Effect.TORCHES && (b.scene==null || b.scene.torches.isEmpty()))
         || (b.frameSlices!=null && b.frameRes==0) || (b.clockRes!=0 && b.clockAppearance==null))
       throw new IllegalArgumentException("Incomplete theme configuration");
     id=b.id;name=b.name;boardRes=b.boardRes;frameRes=b.frameRes;frameMarginDp=b.frameMarginDp;
     boardTint=b.boardTint;darkSquareTint=b.darkSquareTint;glow=b.glow;
     backgroundRes=b.backgroundRes;clockRes=b.clockRes;frameSlices=b.frameSlices;
-    backgroundShade=b.backgroundShade;clockAppearance=b.clockAppearance;scene=b.scene;
+    backgroundShade=b.backgroundShade;clockAppearance=b.clockAppearance;scene=b.scene;furnace=b.furnace;
   }
 
   public static Builder builder(String id,String name,int boardRes) { return new Builder(id,name,boardRes); }
@@ -93,11 +98,13 @@ public final class BoardTheme {
     private float frameMarginDp;
     private FrameSlices frameSlices;
     private Scene scene;
+    private Torch furnace;
     private ClockAppearance clockAppearance;
     private Glow glow=new Glow(Effect.NONE,0,0,0);
     private Builder(String id,String name,int boardRes){this.id=id;this.name=name;this.boardRes=boardRes;}
     public Builder frame(int resource,float marginDp,FrameSlices slices){frameRes=resource;frameMarginDp=marginDp;frameSlices=slices;return this;}
     public Builder background(int resource,int shade){backgroundRes=resource;backgroundShade=shade;return this;}
+    public Builder furnace(float x,float y){furnace=new Torch(x,y);return this;}
     public Builder scene(Scene config){scene=config;return this;}
     public Builder overlays(int board,int darkSquares){boardTint=board;darkSquareTint=darkSquares;return this;}
     public Builder glow(Glow config){glow=config;return this;}

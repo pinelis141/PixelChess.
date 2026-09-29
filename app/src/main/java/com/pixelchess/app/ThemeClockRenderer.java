@@ -5,6 +5,9 @@ import android.graphics.*;
 /** Themed clock plates and standard panels share one rendering entry point. */
 final class ThemeClockRenderer {
   private final Bitmap clock;
+  private final LavaSurface lava;
+  private final BoardTheme.Glow glow;
+  private final long epoch=android.os.SystemClock.uptimeMillis();
   private final BoardTheme.ClockAppearance appearance;
   private final Paint bitmapPaint=new Paint();
   private final Paint clockText=new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -12,7 +15,8 @@ final class ThemeClockRenderer {
   private final Paint auraPaint=new Paint(Paint.ANTI_ALIAS_FLAG);
   private final RectF rect=new RectF();
   private final LightingColorFilter activeTint;
-  ThemeClockRenderer(Bitmap clock,BoardTheme.ClockAppearance appearance){
+  ThemeClockRenderer(Bitmap clock,BoardTheme.ClockAppearance appearance,BoardTheme.Glow glow){
+    this.glow=glow;lava=clock!=null && glow.effect==BoardTheme.Effect.LAVA?new LavaSurface(clock):null;
     this.clock=clock;this.appearance=appearance;
     activeTint=appearance==null?null:new LightingColorFilter(appearance.multiply,appearance.add);
     clockText.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD));
@@ -37,6 +41,7 @@ final class ThemeClockRenderer {
     bitmapPaint.setColorFilter(active?activeTint:null);
     canvas.drawBitmap(clock,null,rect,bitmapPaint);
     bitmapPaint.setColorFilter(null);
+    if(lava!=null)lava.draw(canvas,null,rect,(android.os.SystemClock.uptimeMillis()-epoch)*.001*glow.speed,true,glow.intensity);
     clockText.setColor(active?appearance.activeText:appearance.inactiveText);
     clockText.setTextSize(Math.min(11*scaledDensity,height*0.18f));
     canvas.drawText(name,cx,cy-height*0.17f,clockText);

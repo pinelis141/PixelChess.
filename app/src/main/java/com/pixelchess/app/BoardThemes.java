@@ -29,7 +29,16 @@ public final class BoardThemes {
       .clock(R.drawable.castle_clock_plaque,new BoardTheme.ClockAppearance(190f,3f,
           0xffffe5b1,0xffcbd2dc,0xffffe8c0,0x00120a00,0x30d9a852))
       .build();
-  public static final List<BoardTheme> ALL = Collections.unmodifiableList(Arrays.asList(CLASSIC, FOREST, CASTLE));
+  public static final BoardTheme FORGE = BoardTheme.builder("forge", "Forja Vulcânica", R.drawable.forge_board)
+      .frame(R.drawable.forge_frame,14f*1.07f,new BoardTheme.FrameSlices(79,80,204,205,1051,1049,1176,1172))
+      .background(R.drawable.forge_scene,0x08000000)
+      .scene(new BoardTheme.Scene(510f/1774f,1165f/1774f,360f/1774f,.61f))
+      .furnace(820f/887f,180f/1774f)
+      .glow(new BoardTheme.Glow(BoardTheme.Effect.LAVA,0xffff8b32,.72f,1f))
+      .clock(R.drawable.forge_clock,new BoardTheme.ClockAppearance(170f,3.1f,
+          0xffffe4b0,0xffd5d0c5,0xffffebcd,0x000b0400,0x28e69332))
+      .build();
+  public static final List<BoardTheme> ALL = Collections.unmodifiableList(Arrays.asList(CLASSIC, FOREST, CASTLE, FORGE));
   public static BoardTheme find(String id) {
     for (BoardTheme theme : ALL) if (theme.id.equals(id)) return theme;
     return CLASSIC;
