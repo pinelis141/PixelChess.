@@ -18,3 +18,9 @@ The separate `forge` theme uses the shared board/scene geometry and selector. Ba
 The furnace's hot-pixel highlights and warm local light pulse together. The spill is anchored to the source furnace through the same scene mapping. Background effects are clipped out of the playable board; frame effects are confined to the eight outer strips. The approved board's fine fissures remain static, preserving piece readability. Intensity and speed use the existing theme effect parameters; zero intensity hides overlays and zero speed freezes them.
 
 Paints, shaders and emissive masks are reused. Effects use the existing 50 ms visible-view invalidation cadence. Tests cover loop continuity, mask discrimination, theme registration and clock/furnace fit across five portrait sizes. CI also runs existing Castle/Forest tests and checks frozen Forest asset hashes. On-device appearance/performance requires review on the S23 Ultra.
+
+## 0.19.1 — visible flow correction
+
+User reported the animation was not visible on-device. Redraw scheduling was present, but the original translucent highlight had low contrast against baked emissive artwork. Replace nested ComposeShader masking with explicit SRC_IN layer compositing and a moving dark-red-to-hot-yellow pattern. Increase decorative effect strength and furnace pulse range. Existing channels, asset pixels and board geometry are unchanged.
+
+Add a Robolectric native-graphics rendering regression: actual rendered pixels must differ between t=0 and t=2 for horizontal and vertical flow; t=8 must match t=0; cold stone pixels must remain unchanged and intensity=0 must reproduce the base art. This validates image changes in Android native software rendering; the physical device's hardware renderer still needs review.

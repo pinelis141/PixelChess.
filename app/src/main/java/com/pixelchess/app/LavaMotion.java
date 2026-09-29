@@ -6,7 +6,7 @@ final class LavaMotion {
   static float phase(double seconds) { return (float)((seconds/PERIOD)%1.0); }
   static float furnace(double seconds) {
     double angle=2*Math.PI*phase(seconds);
-    return (float)(.72+.16*Math.sin(angle)+.08*Math.sin(3*angle+.8));
+    return (float)(.65+.23*Math.sin(angle)+.08*Math.sin(3*angle+.8));
   }
   static int maskAlpha(int color) {
     int a=color>>>24,r=(color>>16)&255,g=(color>>8)&255,b=color&255;

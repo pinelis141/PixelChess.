@@ -19,7 +19,7 @@ final class ForgeLightRenderer {
     int save=canvas.save();
     canvas.clipOutRect(geometry.left,geometry.top,geometry.left+geometry.size,geometry.top+geometry.size);
     canvas.translate(x,y);canvas.scale(radius,radius*.85f);
-    light.setAlpha(Math.round(150*theme.glow.intensity*LavaMotion.furnace(seconds)));
+    light.setAlpha(Math.round(230*theme.glow.intensity*LavaMotion.furnace(seconds)));
     canvas.drawCircle(0,0,1,light);canvas.restoreToCount(save);
   }
 }

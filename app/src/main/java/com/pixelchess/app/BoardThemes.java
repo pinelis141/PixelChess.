@@ -34,7 +34,7 @@ public final class BoardThemes {
       .background(R.drawable.forge_scene,0x08000000)
       .scene(new BoardTheme.Scene(510f/1774f,1165f/1774f,360f/1774f,.61f))
       .furnace(820f/887f,180f/1774f)
-      .glow(new BoardTheme.Glow(BoardTheme.Effect.LAVA,0xffff8b32,.72f,1f))
+      .glow(new BoardTheme.Glow(BoardTheme.Effect.LAVA,0xffff8b32,.95f,1f))
       .clock(R.drawable.forge_clock,new BoardTheme.ClockAppearance(170f,3.1f,
           0xffffe4b0,0xffd5d0c5,0xffffebcd,0x000b0400,0x28e69332))
       .build();

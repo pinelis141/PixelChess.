@@ -17,7 +17,7 @@ public class ForgeThemeTest {
       double t=i*.01;
       assertEquals(LavaMotion.phase(t),LavaMotion.phase(t+LavaMotion.PERIOD),.00001f);
       assertEquals(LavaMotion.furnace(t),LavaMotion.furnace(t+LavaMotion.PERIOD),.00001f);
-      assertTrue(LavaMotion.furnace(t)>=.48f && LavaMotion.furnace(t)<=.96f);
+      assertTrue(LavaMotion.furnace(t)>=.34f && LavaMotion.furnace(t)<=.96f);
     }
     assertEquals(LavaMotion.furnace(0),LavaMotion.furnace(7.99999),.0001f);
     assertTrue(LavaMotion.phase(1)<LavaMotion.phase(2));
