@@ -16,22 +16,33 @@ import java.util.UUID;
 public class MainActivity extends Activity {
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
   static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
-  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10; BoardTheme selectedTheme=BoardThemes.CLASSIC; ThemePreferences themePreferences; final Object btWriteLock=new Object();
-  @Override public void onCreate(Bundle b){super.onCreate(b); themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE)); selectedTheme=themePreferences.load(); showMenu();}
+  BluetoothAdapter adapter; BluetoothSocket socket; BluetoothServerSocket serverSocket; ChessView game; boolean bluetoothGame=false, myWhite=true; OutputStream btOut; int selectedMinutes=10; BoardTheme selectedTheme=BoardThemes.CLASSIC; ThemePreferences themePreferences; MenuMusicController menuMusic; boolean menuVisible=false; final Object btWriteLock=new Object();
+  @Override public void onCreate(Bundle b){super.onCreate(b); themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE)); selectedTheme=themePreferences.load(); menuMusic=new MenuMusicController(this); showMenu();}
+  @Override protected void onStart(){super.onStart();if(menuVisible&&menuMusic!=null)menuMusic.start();}
+  @Override protected void onStop(){if(menuMusic!=null)menuMusic.pause();super.onStop();}
+  @Override protected void onDestroy(){if(menuMusic!=null)menuMusic.release();super.onDestroy();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
   Button button(String s){ Button b=new Button(this); b.setText(s); b.setTextSize(18); b.setAllCaps(false); b.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return b; }
 
   void showMenu(){
-    LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER); box.setPadding(40,40,40,40); box.setBackgroundColor(bg);
+    menuVisible=true;
+    float den=getResources().getDisplayMetrics().density;
+    FrameLayout root=new FrameLayout(this);root.setBackgroundColor(bg);
+    LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER); box.setPadding(40,40,40,40);
     TextView logo=title("♜  PIXEL CHESS  ♞",30); box.addView(logo,new LinearLayout.LayoutParams(-1,-2));
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
     Button skin=button("▣ Skin: "+selectedTheme.name); skin.setOnClickListener(v->chooseSkin()); box.addView(skin,new LinearLayout.LayoutParams(-1,-2));
     TextView ver=title("\nMVP "+BuildConfig.VERSION_NAME+" • Temas",12); ver.setTextColor(Color.GRAY); box.addView(ver);
-    setContentView(box);
+    FrameLayout.LayoutParams center=new FrameLayout.LayoutParams(-1,-2,Gravity.CENTER);center.leftMargin=center.rightMargin=(int)(20*den);root.addView(box,center);
+    Button sound=button(menuMusic!=null&&menuMusic.isMuted()?"🔇":"🔊");sound.setTextSize(22);sound.setPadding(0,0,0,0);sound.setContentDescription(menuMusic!=null&&menuMusic.isMuted()?"Ativar música":"Silenciar música");
+    FrameLayout.LayoutParams soundLp=new FrameLayout.LayoutParams((int)(54*den),(int)(54*den),Gravity.BOTTOM|Gravity.END);soundLp.setMargins((int)(16*den),(int)(16*den),(int)(18*den),(int)(18*den));root.addView(sound,soundLp);
+    sound.setOnClickListener(v->{if(menuMusic==null)return;boolean muted=menuMusic.toggleMuted();sound.setText(muted?"🔇":"🔊");sound.setContentDescription(muted?"Ativar música":"Silenciar música");});
+    setContentView(root);if(menuMusic!=null)menuMusic.start();
   }
+  void leaveMenu(){menuVisible=false;if(menuMusic!=null)menuMusic.pause();}
   void chooseSkin(){
     String[] names=new String[BoardThemes.ALL.size()]; int checked=0;
     for(int i=0;i<names.length;i++){BoardTheme theme=BoardThemes.ALL.get(i);names[i]=theme.name;if(theme.id.equals(selectedTheme.id))checked=i;}
@@ -44,7 +55,7 @@ public class MainActivity extends Activity {
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
 
   boolean btPermission(){ if(Build.VERSION.SDK_INT>=31 && checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED){requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT","android.permission.BLUETOOTH_SCAN"},42);return false;}return true; }
-  void chooseTime(boolean bt){String[] x={"10 minutos","5 minutos","3 minutos"};new AlertDialog.Builder(this).setTitle("RELÓGIO").setItems(x,(d,i)->{selectedMinutes=i==0?10:i==1?5:3;if(bt)hostGame();else setContentView(new ChessView(this));}).setNegativeButton("CANCELAR",null).show();}
+  void chooseTime(boolean bt){String[] x={"10 minutos","5 minutos","3 minutos"};new AlertDialog.Builder(this).setTitle("RELÓGIO").setItems(x,(d,i)->{selectedMinutes=i==0?10:i==1?5:3;if(bt)hostGame();else{leaveMenu();setContentView(new ChessView(this));}}).setNegativeButton("CANCELAR",null).show();}
   void bluetoothMenu(){
     if(!btPermission())return; adapter=BluetoothAdapter.getDefaultAdapter(); if(adapter==null){toast("Este aparelho não possui Bluetooth");return;} if(!adapter.isEnabled()){toast("Ative o Bluetooth e tente novamente");return;}
     new AlertDialog.Builder(this).setTitle("Jogar via Bluetooth").setMessage("Quem criar a sala escolhe o tempo para os dois jogadores.").setPositiveButton("CRIAR PARTIDA",(d,w)->chooseTime(true)).setNegativeButton("ENTRAR",(d,w)->chooseDevice()).setNeutralButton("CANCELAR",null).show();
@@ -52,7 +63,7 @@ public class MainActivity extends Activity {
   void hostGame(){toast("Aguardando o outro jogador…"); new Thread(()->{try{serverSocket=adapter.listenUsingRfcommWithServiceRecord("PixelChess",GAME_UUID);socket=serverSocket.accept();serverSocket.close();serverSocket=null;startBtGame(true);}catch(Exception e){if(serverSocket!=null)runOnUiThread(()->toast("Falha ao criar partida: "+e.getMessage()));}}).start();}
   void chooseDevice(){Set<BluetoothDevice> ds=adapter.getBondedDevices();if(ds.isEmpty()){toast("Nenhum aparelho pareado. Pareie os celulares primeiro.");return;} final ArrayList<BluetoothDevice> list=new ArrayList<>(ds);String[] names=new String[list.size()];for(int i=0;i<list.size();i++){String n=list.get(i).getName();names[i]=n==null?list.get(i).getAddress():n;}new AlertDialog.Builder(this).setTitle("Escolha o celular").setItems(names,(d,i)->connectGame(list.get(i))).show();}
   void connectGame(BluetoothDevice dev){toast("Conectando…");new Thread(()->{try{socket=dev.createRfcommSocketToServiceRecord(GAME_UUID);adapter.cancelDiscovery();socket.connect();startBtGame(false);}catch(Exception e){runOnUiThread(()->toast("Não conectou: "+e.getMessage()));}}).start();}
-  void startBtGame(boolean host)throws Exception{bluetoothGame=true;myWhite=host;btOut=socket.getOutputStream();InputStream in=socket.getInputStream();BufferedReader br=new BufferedReader(new InputStreamReader(in));if(host){writeBt("TIME,"+selectedMinutes);}else{String setup=br.readLine();if(setup==null||!setup.startsWith("TIME,"))throw new IOException("Configuração da sala inválida");selectedMinutes=Integer.parseInt(setup.substring(5));}runOnUiThread(()->{game=new ChessView(this);game.status=host?"VOCÊ É BRANCAS":"VOCÊ É PRETAS";setContentView(game);});String line;while((line=br.readLine())!=null){final String msg=line;if(msg.startsWith("MOVE,")){String[] a=msg.split(",");if(a.length>=8){int r1=Integer.parseInt(a[1]),c1=Integer.parseInt(a[2]),r2=Integer.parseInt(a[3]),c2=Integer.parseInt(a[4]);String promo=a[5];long wm=Long.parseLong(a[6]),bm=Long.parseLong(a[7]);runOnUiThread(()->game.remoteMove(r1,c1,r2,c2,promo,wm,bm));}}else if(msg.startsWith("SYNC,")){String[] a=msg.split(",");if(a.length>=4){long wm=Long.parseLong(a[1]),bm=Long.parseLong(a[2]);boolean turn=a[3].equals("W");runOnUiThread(()->game.applyClockSync(wm,bm,turn));}}else if(msg.startsWith("FLAG,")){String[] a=msg.split(",");if(a.length>=2){boolean loserWhite=a[1].equals("W");runOnUiThread(()->game.applyRemoteFlag(loserWhite));}}}}
+  void startBtGame(boolean host)throws Exception{bluetoothGame=true;myWhite=host;btOut=socket.getOutputStream();InputStream in=socket.getInputStream();BufferedReader br=new BufferedReader(new InputStreamReader(in));if(host){writeBt("TIME,"+selectedMinutes);}else{String setup=br.readLine();if(setup==null||!setup.startsWith("TIME,"))throw new IOException("Configuração da sala inválida");selectedMinutes=Integer.parseInt(setup.substring(5));}runOnUiThread(()->{leaveMenu();game=new ChessView(this);game.status=host?"VOCÊ É BRANCAS":"VOCÊ É PRETAS";setContentView(game);});String line;while((line=br.readLine())!=null){final String msg=line;if(msg.startsWith("MOVE,")){String[] a=msg.split(",");if(a.length>=8){int r1=Integer.parseInt(a[1]),c1=Integer.parseInt(a[2]),r2=Integer.parseInt(a[3]),c2=Integer.parseInt(a[4]);String promo=a[5];long wm=Long.parseLong(a[6]),bm=Long.parseLong(a[7]);runOnUiThread(()->game.remoteMove(r1,c1,r2,c2,promo,wm,bm));}}else if(msg.startsWith("SYNC,")){String[] a=msg.split(",");if(a.length>=4){long wm=Long.parseLong(a[1]),bm=Long.parseLong(a[2]);boolean turn=a[3].equals("W");runOnUiThread(()->game.applyClockSync(wm,bm,turn));}}else if(msg.startsWith("FLAG,")){String[] a=msg.split(",");if(a.length>=2){boolean loserWhite=a[1].equals("W");runOnUiThread(()->game.applyRemoteFlag(loserWhite));}}}}
   void writeBt(String msg)throws IOException{synchronized(btWriteLock){if(btOut==null)throw new IOException("Sem conexão");btOut.write((msg+"\n").getBytes("UTF-8"));btOut.flush();}}
   void sendMove(int r1,int c1,int r2,int c2){sendMove(r1,c1,r2,c2,"-");}
   void sendMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||btOut==null||game==null)return;final long wm=game.whiteMs,bm=game.blackMs;new Thread(()->{try{writeBt("MOVE,"+r1+","+c1+","+r2+","+c2+","+promo+","+wm+","+bm);}catch(Exception e){runOnUiThread(()->toast("Conexão Bluetooth perdida"));}}).start();}
