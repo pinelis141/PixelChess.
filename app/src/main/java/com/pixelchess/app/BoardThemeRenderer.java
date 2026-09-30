@@ -12,6 +12,7 @@ import android.graphics.Rect;
 /** Owns theme bitmaps and decoration; never reads or changes match state. */
 public final class BoardThemeRenderer {
   private final BoardTheme theme;
+  private final boolean effectsEnabled;
   private final Bitmap board, frame, background;
   private final ThemeClockRenderer clocks;
   private final ThemeEffectRenderer effects;
@@ -30,7 +31,11 @@ public final class BoardThemeRenderer {
   private final RectF rect = new RectF();
 
   public BoardThemeRenderer(Resources resources, BoardTheme theme) {
+    this(resources,theme,true);
+  }
+  public BoardThemeRenderer(Resources resources, BoardTheme theme,boolean effectsEnabled) {
     this.theme = theme;
+    this.effectsEnabled=effectsEnabled;
     BitmapFactory.Options options = new BitmapFactory.Options();
     options.inScaled = false;
     board = BitmapFactory.decodeResource(resources, theme.boardRes, options);
@@ -66,12 +71,11 @@ public final class BoardThemeRenderer {
           source.set(frameX[col],frameY[row],frameX[col+1],frameY[row+1]);
           rect.set(targetX[col],targetY[row],targetX[col+1],targetY[row+1]);
           canvas.drawBitmap(frame,source,rect,bitmapPaint);
-          if(frameLava!=null)frameLava.draw(canvas,source,rect,effectSeconds(),row==1,theme.glow.intensity);
+          if(effectsEnabled && frameLava!=null)frameLava.draw(canvas,source,rect,effectSeconds(),row==1,theme.glow.intensity);
         }
       }
     }
-    effects.draw(canvas,left,top,size,density,margin);
-    torches.draw(canvas,geometry,sceneWidth,density);
+    if(effectsEnabled){effects.draw(canvas,left,top,size,density,margin);torches.draw(canvas,geometry,sceneWidth,density);}
     rect.set(left, top, left+size, top+size);
     if (board != null) canvas.drawBitmap(board, null, rect, bitmapPaint);
     else {
@@ -102,7 +106,7 @@ public final class BoardThemeRenderer {
       drawSceneRegion(canvas,cutTop,cutBottom,geometry.upperEnd,geometry.lowerStart,width);
       drawSceneRegion(canvas,cutBottom,background.getHeight(),geometry.lowerStart,height,width);
       canvas.drawColor(theme.backgroundShade);
-      furnace.draw(canvas,geometry,width,effectSeconds());
+      if(effectsEnabled)furnace.draw(canvas,geometry,width,effectSeconds());
       return;
     }
     float scale=Math.max(width/(float)background.getWidth(),height/(float)background.getHeight());
@@ -116,7 +120,7 @@ public final class BoardThemeRenderer {
     source.set(0,sourceTop,background.getWidth(),sourceBottom);
     rect.set(0,top,width,bottom);
     canvas.drawBitmap(background,source,rect,bitmapPaint);
-    if(backgroundLava!=null) {
+    if(effectsEnabled && backgroundLava!=null) {
       int save=canvas.save();
       canvas.clipOutRect(geometry.left,geometry.top,geometry.left+geometry.size,geometry.top+geometry.size);
       backgroundLava.draw(canvas,source,rect,effectSeconds(),false,theme.glow.intensity*(sourceTop==0?LavaMotion.furnace(effectSeconds()):1f),sourceTop!=0);
@@ -133,5 +137,5 @@ public final class BoardThemeRenderer {
     clocks.draw(canvas,cx,cy,name,time,active,density,scaledDensity,viewWidth);
   }
   public boolean hasBackground() { return background!=null; }
-  public boolean animated() { return effects.animated(); }
+  public boolean animated() { return effectsEnabled && (effects.animated()||theme.glow.animated()); }
 }

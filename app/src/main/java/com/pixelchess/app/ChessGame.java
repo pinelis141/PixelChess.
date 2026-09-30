@@ -10,6 +10,7 @@ public final class ChessGame {
   private final String[][] board=new String[8][8];
   private final HashMap<String,Integer> repetitions=new HashMap<>();
   private final ArrayList<String> history=new ArrayList<>();
+  private final ArrayList<String> moves=new ArrayList<>();
 
   private boolean whiteTurn=true;
   private boolean whiteKingMoved,blackKingMoved,whiteRookA,whiteRookH,blackRookA,blackRookH;
@@ -36,6 +37,7 @@ public final class ChessGame {
     halfmove=0;
     repetitions.clear();
     history.clear();
+    moves.clear();
     status="BRANCAS JOGAM";
     recordPosition();
   }
@@ -78,7 +80,12 @@ public final class ChessGame {
   }
 
   public boolean move(int r1,int c1,int r2,int c2,String promotion){
-    if(gameOver||!isLegal(r1,c1,r2,c2))return false;
+    String source=pieceAt(r1,c1);
+    if(gameOver||source==null||isWhitePiece(source)!=whiteTurn||!isLegal(r1,c1,r2,c2))return false;
+    boolean promotes=source.equalsIgnoreCase("p")&&(r2==0||r2==7);
+    String chosen=promotion==null||promotion.equals("-")?"Q":promotion.toUpperCase(java.util.Locale.ROOT);
+    if(promotes&&(chosen.length()!=1||"QRBN".indexOf(chosen.charAt(0))<0))return false;
+    if(!promotes&&promotion!=null&&!promotion.equals("-"))return false;
 
     String q=board[r1][c1];
     String notation=square(r1,c1)+"-"+square(r2,c2);
@@ -97,7 +104,7 @@ public final class ChessGame {
     board[r1][c1]=null;
 
     if(type=='p'&&(r2==0||r2==7)){
-      String p=(promotion==null||promotion.equals("-"))?(side?"Q":"q"):promotion;
+      String p=side?chosen:chosen.toLowerCase(java.util.Locale.ROOT);
       board[r2][c2]=p;
       notation+="="+Character.toUpperCase(p.charAt(0));
     }
@@ -124,6 +131,7 @@ public final class ChessGame {
       if(r2==0&&c2==7)blackRookH=true;
     }
 
+    moves.add(""+r1+c1+r2+c2+(promotes?chosen:"-"));
     history.add((history.size()/2+1)+(side?".":"...")+notation);
     if(type=='p'||captured!=null)halfmove=0;else halfmove++;
     whiteTurn=!whiteTurn;
@@ -185,7 +193,7 @@ public final class ChessGame {
     if(type=='n')return ar*ac==2;
     if(type=='k'){
       if(ar<=1&&ac<=1)return true;
-      return dr==0&&ac==2&&castlePossible(isWhitePiece(q),dc>0);
+      return r1==(isWhitePiece(q)?7:0)&&c1==4&&dr==0&&ac==2&&castlePossible(isWhitePiece(q),dc>0);
     }
     if(type=='p'){
       int d=isWhitePiece(q)?-1:1,start=isWhitePiece(q)?6:1;
@@ -264,11 +272,29 @@ public final class ChessGame {
     StringBuilder key=new StringBuilder();
     for(int r=0;r<8;r++)for(int c=0;c<8;c++)key.append(board[r][c]==null?".":board[r][c]);
     key.append(whiteTurn?"w":"b")
-      .append(whiteKingMoved?"1":"0").append(blackKingMoved?"1":"0")
-      .append(whiteRookA?"1":"0").append(whiteRookH?"1":"0")
-      .append(blackRookA?"1":"0").append(blackRookH?"1":"0")
-      .append(epRow).append(":").append(epCol);
+      .append(!whiteKingMoved&&!whiteRookH?"K":"-").append(!whiteKingMoved&&!whiteRookA?"Q":"-")
+      .append(!blackKingMoved&&!blackRookH?"k":"-").append(!blackKingMoved&&!blackRookA?"q":"-");
+    boolean legalEp=false;
+    if(epRow>=0){int from=epRow+(whiteTurn?1:-1);for(int c=epCol-1;c<=epCol+1;c+=2){
+      String pawn=pieceAt(from,c);
+      if(pawn!=null&&pawn.equals(whiteTurn?"P":"p")&&isLegal(from,c,epRow,epCol))legalEp=true;
+    }}
+    key.append(legalEp?epRow:-1).append(":").append(legalEp?epCol:-1);
     return key.toString();
+  }
+
+  /** Legal move transcript rebuilds castling, en passant, repetitions and halfmove state. */
+  public String transcript(){return moves.isEmpty()?"-":String.join(";",moves);}
+  public static ChessGame replay(String transcript){
+    if(transcript==null||transcript.length()>60000)throw new IllegalArgumentException("Invalid move transcript");
+    ChessGame restored=new ChessGame();
+    if(transcript.equals("-"))return restored;
+    for(String move:transcript.split(";",-1)){
+      if(!move.matches("[0-7]{4}[-QRBN]"))throw new IllegalArgumentException("Malformed move");
+      if(!restored.move(move.charAt(0)-'0',move.charAt(1)-'0',move.charAt(2)-'0',move.charAt(3)-'0',move.substring(4)))
+        throw new IllegalArgumentException("Illegal transcript move");
+    }
+    return restored;
   }
 
   private int recordPosition(){

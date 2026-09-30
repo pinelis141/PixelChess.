@@ -4,6 +4,7 @@ package com.pixelchess.app;
 public final class BoardTheme {
   public enum Effect { NONE, FIREFLIES, TORCHES, LAVA }
   public final String id, name;
+  public final boolean locked;
   public final int boardRes, frameRes, boardTint, darkSquareTint;
   public final float frameMarginDp;
   public final Glow glow;
@@ -86,6 +87,7 @@ public final class BoardTheme {
       throw new IllegalArgumentException("Incomplete theme configuration");
     id=b.id;name=b.name;boardRes=b.boardRes;frameRes=b.frameRes;frameMarginDp=b.frameMarginDp;
     boardTint=b.boardTint;darkSquareTint=b.darkSquareTint;glow=b.glow;
+    locked=b.locked;
     backgroundRes=b.backgroundRes;clockRes=b.clockRes;frameSlices=b.frameSlices;
     backgroundShade=b.backgroundShade;clockAppearance=b.clockAppearance;scene=b.scene;furnace=b.furnace;
   }
@@ -95,6 +97,7 @@ public final class BoardTheme {
     private final String id,name;
     private final int boardRes;
     private int frameRes,boardTint,darkSquareTint,backgroundRes,clockRes,backgroundShade;
+    private boolean locked;
     private float frameMarginDp;
     private FrameSlices frameSlices;
     private Scene scene;
@@ -108,6 +111,7 @@ public final class BoardTheme {
     public Builder scene(Scene config){scene=config;return this;}
     public Builder overlays(int board,int darkSquares){boardTint=board;darkSquareTint=darkSquares;return this;}
     public Builder glow(Glow config){glow=config;return this;}
+    public Builder locked(boolean value){locked=value;return this;}
     public Builder clock(int resource,ClockAppearance appearance){clockRes=resource;clockAppearance=appearance;return this;}
     public BoardTheme build(){return new BoardTheme(this);}
   }

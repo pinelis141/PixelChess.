@@ -12,6 +12,11 @@ public class BoardThemeTest {
     assertEquals(2,second.backgroundRes);
     assertFalse(first.glow.animated());
   }
+  @Test public void lockedThemesCannotBeMistakenForUnlockedThemes(){
+    BoardTheme locked=BoardTheme.builder("locked","Bloqueada",1).locked(true).build();
+    BoardTheme open=BoardTheme.builder("open","Disponível",1).build();
+    assertTrue(locked.locked);assertFalse(open.locked);
+  }
   @Test(expected=IllegalArgumentException.class) public void rejectClockAssetWithoutAppearance() {
     BoardTheme.builder("sample","Sample",1).clock(2,null).build();
   }

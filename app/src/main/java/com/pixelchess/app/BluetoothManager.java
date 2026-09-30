@@ -11,14 +11,21 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /** Owns Bluetooth sockets and byte transport. Game protocol/state live elsewhere. */
 public final class BluetoothManager {
   private BluetoothAdapter adapter;
-  private BluetoothSocket socket;
-  private BluetoothServerSocket serverSocket;
+  private volatile BluetoothSocket socket;
+  private volatile BluetoothServerSocket serverSocket;
+  private volatile boolean closed;
   private OutputStream out;
   private final Object writeLock=new Object();
+  private final ExecutorService writer=Executors.newSingleThreadExecutor();
+  private long sessionGeneration;
+
+  public interface WriteCallback { void onError(Exception error); }
 
   public void setAdapter(BluetoothAdapter adapter){this.adapter=adapter;}
   public BluetoothAdapter adapter(){return adapter;}
@@ -29,18 +36,22 @@ public final class BluetoothManager {
   public void hostAndAccept(String serviceName,UUID uuid)throws IOException {
     requireAdapter();
     serverSocket=adapter.listenUsingRfcommWithServiceRecord(serviceName,uuid);
+    if(closed){serverSocket.close();throw new IOException("Conexão cancelada");}
     socket=serverSocket.accept();
     serverSocket.close();
     serverSocket=null;
-    out=socket.getOutputStream();
+    if(closed){socket.close();throw new IOException("Conexão cancelada");}
+    synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
   }
 
   public void connect(BluetoothDevice device,UUID uuid)throws IOException {
     requireAdapter();
     socket=device.createRfcommSocketToServiceRecord(uuid);
     adapter.cancelDiscovery();
+    if(closed){socket.close();throw new IOException("Conexão cancelada");}
     socket.connect();
-    out=socket.getOutputStream();
+    if(closed){socket.close();throw new IOException("Conexão cancelada");}
+    synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
   }
 
   public BufferedReader reader()throws IOException {
@@ -56,11 +67,31 @@ public final class BluetoothManager {
     }
   }
 
+  /** Preserves invocation order for all gameplay packets. */
+  public void writeAsync(String message,WriteCallback callback){
+    final long session;
+    synchronized(writeLock){session=sessionGeneration;}
+    writer.execute(()->{
+      try{
+        synchronized(writeLock){
+          if(session!=sessionGeneration)return;
+          if(out==null)throw new IOException("Sem conexão");
+          out.write((message+"\n").getBytes("UTF-8"));
+          out.flush();
+        }
+      }catch(Exception e){if(callback!=null)callback.onError(e);}
+    });
+  }
+
   public void close(){
+    closed=true;
     try{if(serverSocket!=null)serverSocket.close();}catch(Exception ignored){}
     try{if(socket!=null)socket.close();}catch(Exception ignored){}
-    serverSocket=null;socket=null;out=null;
+    synchronized(writeLock){sessionGeneration++;out=null;}
+    serverSocket=null;socket=null;
   }
+
+  void dispose(){close();writer.shutdownNow();}
 
   private void requireAdapter()throws IOException {
     if(adapter==null)throw new IOException("Bluetooth indisponível");
