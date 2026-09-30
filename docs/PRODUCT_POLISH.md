@@ -1,7 +1,9 @@
-# Produto — 0.26.2
+# Produto — 0.26.3
 
 ## Arquitetura e UX
 
+- O cavalo usa 360 ms para completar a trajetória em L; as demais peças continuam em 220 ms.
+- Peças pretas recebem um contorno claro de 1 pixel e baixa opacidade para separar a silhueta das casas escuras sem alterar suas cores internas.
 - O losango de movimentos legais ganhou contorno escuro externo e realce interno para permanecer visível em casas claras e escuras.
 - O cavalo agora percorre visualmente uma trajetória em L, com dois segmentos, em vez de interpolar em linha direta até a casa de destino.
 - A casa da peça selecionada não recebe mais o mesmo destaque de um destino legal; apenas movimentos e capturas possíveis são marcados.
