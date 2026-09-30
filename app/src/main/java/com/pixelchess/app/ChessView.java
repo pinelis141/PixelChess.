@@ -67,9 +67,8 @@ public final class ChessView extends View {
         p.setColor(gameState.status().startsWith("XEQUE-MATE")?Color.rgb(198,40,40):Color.rgb(245,124,0));
         c.drawRect(left0+vx*s,top+vr*s,left0+(vx+1)*s,top+(vr+1)*s,p);
       }
-      if(sr==r&&sc==x)drawGoldSquare(c,left0+vx*s,top+vr*s,s,true);
       if(sr>=0&&!(r==sr&&x==sc)&&gameState.isLegal(sr,sc,r,x)){
-        if(gameState.pieceAt(r,x)!=null)drawGoldSquare(c,left0+vx*s,top+vr*s,s,false);
+        if(gameState.pieceAt(r,x)!=null)drawCaptureTarget(c,left0+vx*s,top+vr*s,s);
         else drawGoldMoveMarker(c,left0+vx*s,top+vr*s,s);
       }
       String q=gameState.pieceAt(r,x);if(q!=null&&!(animating&&r==animR2&&x==animC2))drawPieceSprite(c,q,left0+vx*s,top+vr*s,s);
@@ -86,13 +85,13 @@ public final class ChessView extends View {
     p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.argb(210,235,221,184));
     for(int i=0;i<8;i++){int file=flip?7-i:i;int rank=flip?i:7-i;c.drawText(""+(char)('A'+file),left0+i*s+s/2,top+w+14*den,p);p.setTextAlign(Paint.Align.CENTER);c.drawText(""+(rank+1),left0/2f,top+i*s+s*.58f,p);p.setTextAlign(Paint.Align.CENTER);}
     themeRenderer.drawClock(c,getWidth()/2f,top+w+58*den,bottomName,clockText(bottomMs),bottomActive,den,getResources().getDisplayMetrics().scaledDensity,getWidth());
-    p.setTextSize(11*getResources().getDisplayMetrics().scaledDensity);p.setColor(themeRenderer.hasBackground()?Color.rgb(183,186,174):Color.rgb(118,121,119));String h=!gameState.hasHistory()?"JOGADAS  ·  nenhuma":gameState.historyLine().replace("JOGADAS:","JOGADAS  ·");if(p.measureText(h)>getWidth()*.94f)p.setTextSize(p.getTextSize()*getWidth()*.94f/p.measureText(h));c.drawText(h,getWidth()/2f,(themeRenderer.hasScene()?Math.min(getHeight()-14*den,top+w+125*den):Math.min(getHeight()-48*den,top+w+112*den)),p);
+    p.setTextSize(11.5f*getResources().getDisplayMetrics().scaledDensity);p.setColor(themeRenderer.hasBackground()?Color.rgb(214,211,196):Color.rgb(142,146,143));String h=!gameState.hasHistory()?"JOGADAS  ·  nenhuma":gameState.historyLine().replace("JOGADAS:","JOGADAS  ·");if(p.measureText(h)>getWidth()*.94f)p.setTextSize(p.getTextSize()*getWidth()*.94f/p.measureText(h));c.drawText(h,getWidth()/2f,(themeRenderer.hasScene()?Math.min(getHeight()-14*den,top+w+125*den):Math.min(getHeight()-48*den,top+w+112*den)),p);
     p.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(55,59,61));if(!themeRenderer.hasScene())c.drawText("◆  PIXEL CHESS  ◆",getWidth()/2f,Math.min(getHeight()-20*den,top+w+140*den),p);p.clearShadowLayer();
   }
-  void drawGoldSquare(Canvas c,float left,float top,float size,boolean selected){
-    p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(112,222,158,35));c.drawRect(left,top,left+size,top+size,p);
-    p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(2f,size*.035f));p.setColor(Color.rgb(238,184,58));
-    float in=Math.max(2f,size*.035f);c.drawRect(left+in,top+in,left+size-in,top+size-in,p);p.setStyle(Paint.Style.FILL);
+  void drawCaptureTarget(Canvas c,float left,float top,float size){
+    p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(52,235,151,35));c.drawRect(left,top,left+size,top+size,p);
+    p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(2f,size*.04f));p.setColor(Color.rgb(246,178,54));
+    float in=Math.max(2f,size*.04f);c.drawRect(left+in,top+in,left+size-in,top+size-in,p);p.setStyle(Paint.Style.FILL);
   }
   void drawGoldMoveMarker(Canvas c,float left,float top,float size){
     float cx=left+size/2f,cy=top+size/2f,d=size*.105f;

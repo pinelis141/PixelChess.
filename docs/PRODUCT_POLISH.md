@@ -1,7 +1,10 @@
-# Produto — 0.26.0
+# Produto — 0.26.1
 
 ## Arquitetura e UX
 
+- A casa da peça selecionada não recebe mais o mesmo destaque de um destino legal; apenas movimentos e capturas possíveis são marcados.
+- Capturas usam moldura própria e o histórico mostra `x` em vez de `-`, com reticências quando exibe apenas os lances mais recentes.
+- O histórico ganhou contraste ligeiramente maior e o contorno das peças brancas foi suavizado.
 - O destaque vermelho do rei agora é exclusivo de xeque-mate; término por tempo não é confundido visualmente com mate.
 - Sair de uma partida ativa pelo botão Voltar exige confirmação, evitando abandono acidental.
 - Sprites brancos recebem contorno fino de contraste no renderer, independentemente do PNG de origem.

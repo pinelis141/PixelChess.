@@ -88,12 +88,13 @@ public final class ChessGame {
     if(!promotes&&promotion!=null&&!promotion.equals("-"))return false;
 
     String q=board[r1][c1];
-    String notation=square(r1,c1)+"-"+square(r2,c2);
     boolean side=isWhitePiece(q);
     char type=Character.toLowerCase(q.charAt(0));
     String captured=board[r2][c2];
+    boolean enPassantCapture=type=='p'&&c1!=c2&&captured==null&&r2==epRow&&c2==epCol;
+    String notation=square(r1,c1)+(captured!=null||enPassantCapture?"x":"-")+square(r2,c2);
 
-    if(type=='p'&&c1!=c2&&captured==null&&r2==epRow&&c2==epCol)board[r1][c2]=null;
+    if(enPassantCapture)board[r1][c2]=null;
     if(type=='k'&&Math.abs(c2-c1)==2){
       int rookCol=c2>c1?7:0,newCol=c2>c1?5:3;
       board[r2][newCol]=board[r2][rookCol];
@@ -174,6 +175,7 @@ public final class ChessGame {
   public String historyLine(){
     int from=Math.max(0,history.size()-4);
     StringBuilder z=new StringBuilder("JOGADAS: ");
+    if(from>0)z.append("…  ");
     for(int i=from;i<history.size();i++){
       if(i>from)z.append("  ");
       z.append(history.get(i));

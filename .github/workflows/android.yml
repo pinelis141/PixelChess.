@@ -2,7 +2,12 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, feature/forest-skin-test, feature/forest-theme-foundation, refactor/theme-system, feature/castle-medieval, feature/volcanic-forge, integration/themes-stable, feature/theme-selector, refactor/core-engine, fix/authoritative-bluetooth-clock, feature/menu-audio-current, feature/product-polish-backlog ]
+    branches:
+      - main
+      - 'feature/**'
+      - 'fix/**'
+      - 'refactor/**'
+      - 'integration/**'
 
 jobs:
   build:
@@ -53,10 +58,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PixelChess-0.26.0-release-apk
+          name: PixelChess-0.26.1-release-apk
           path: app/build/outputs/apk/release/*.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PixelChess-0.26.0-release-aab
+          name: PixelChess-0.26.1-release-aab
           path: app/build/outputs/bundle/release/*.aab
