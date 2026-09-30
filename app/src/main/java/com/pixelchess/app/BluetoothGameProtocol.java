@@ -47,6 +47,14 @@ public final class BluetoothGameProtocol {
     Flag(boolean loserWhite,long sequence){this.loserWhite=loserWhite;this.sequence=sequence;}
   }
 
+  public static final class Reject implements Message {
+    public final long whiteMs,blackMs,sequence;
+    public final boolean whiteTurn;
+    Reject(long whiteMs,long blackMs,boolean whiteTurn,long sequence){
+      this.whiteMs=whiteMs;this.blackMs=blackMs;this.whiteTurn=whiteTurn;this.sequence=sequence;
+    }
+  }
+
   public static String time(int minutes){return "TIME,"+minutes+","+VERSION;}
   public static String play(int r1,int c1,int r2,int c2,String promotion){
     return "PLAY,"+r1+","+c1+","+r2+","+c2+","+promotion;
@@ -58,6 +66,9 @@ public final class BluetoothGameProtocol {
     return "SYNC,"+whiteMs+","+blackMs+","+(whiteTurn?"W":"B")+","+sequence;
   }
   public static String flag(boolean loserWhite,long sequence){return "FLAG,"+(loserWhite?"W":"B")+","+sequence;}
+  public static String reject(long whiteMs,long blackMs,boolean whiteTurn,long sequence){
+    return "REJECT,"+whiteMs+","+blackMs+","+(whiteTurn?"W":"B")+","+sequence;
+  }
 
   public static Message parse(String line){
     if(line==null)return null;
@@ -74,6 +85,8 @@ public final class BluetoothGameProtocol {
         return new Sync(Long.parseLong(a[1]),Long.parseLong(a[2]),"W".equals(a[3]),Long.parseLong(a[4]));
       if(a.length>=3&&"FLAG".equals(a[0]))
         return new Flag("W".equals(a[1]),Long.parseLong(a[2]));
+      if(a.length>=5&&"REJECT".equals(a[0]))
+        return new Reject(Long.parseLong(a[1]),Long.parseLong(a[2]),"W".equals(a[3]),Long.parseLong(a[4]));
     }catch(NumberFormatException|ArrayIndexOutOfBoundsException ignored){}
     return null;
   }
