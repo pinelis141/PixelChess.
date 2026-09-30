@@ -2,6 +2,7 @@ package com.pixelchess.app;
 
 import java.time.Duration;
 import org.junit.Test;
+import android.view.MotionEvent;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
@@ -31,4 +32,39 @@ public class ChessViewSessionTest {
     BluetoothGameProtocol.Sync sync=(BluetoothGameProtocol.Sync)BluetoothGameProtocol.parse(BluetoothGameProtocol.sync(5000,5000,false,1));view.applyAuthoritySync(sync);
     assertEquals(1,actions.desync);assertTrue(view.gameState.whiteTurn());view.clock.removeCallbacksAndMessages(null);
   }
+  private void tap(ChessView view,int row,int col){
+    float den=view.getResources().getDisplayMetrics().density;
+    view.boardGeometry.update(view.getWidth(),view.getHeight(),den,view.themeRenderer.hasScene());
+    float square=view.boardGeometry.size/8f;
+    float x=view.boardGeometry.left+(col+.5f)*square;
+    float y=view.boardGeometry.top+(row+.5f)*square;
+    MotionEvent event=MotionEvent.obtain(0,0,MotionEvent.ACTION_UP,x,y,0);
+    view.onTouchEvent(event);
+    event.recycle();
+  }
+
+  @Test public void localPlayersCanMoveRapidlyBeforePreviousAnimationEnds(){
+    ChessView view=new ChessView(RuntimeEnvironment.getApplication(),BoardThemes.CLASSIC,5,false,true,new Actions());
+    view.layout(0,0,1080,1920);
+
+    assertTrue(view.move(6,4,4,4,"-")); // white e2-e4 starts animation
+    assertTrue(view.animating);
+    assertFalse(view.gameState.whiteTurn());
+
+    tap(view,1,4); // black e7 must still be selectable during white animation
+    assertEquals(1,view.sr);
+    assertEquals(4,view.sc);
+    tap(view,3,4); // black e7-e5
+    assertEquals("p",view.gameState.pieceAt(3,4));
+    assertTrue(view.gameState.whiteTurn());
+
+    tap(view,7,6); // white g1 must be selectable during black animation
+    assertEquals(7,view.sr);
+    assertEquals(6,view.sc);
+    tap(view,5,5); // white Ng1-f3
+    assertEquals("N",view.gameState.pieceAt(5,5));
+    assertFalse(view.gameState.whiteTurn());
+    view.clock.removeCallbacksAndMessages(null);
+  }
+
 }
