@@ -1,7 +1,7 @@
 plugins { id 'com.android.application' }
 def releaseSigningReady = ['PIXELCHESS_KEYSTORE_PATH','PIXELCHESS_STORE_PASSWORD','PIXELCHESS_KEY_ALIAS','PIXELCHESS_KEY_PASSWORD'].every { System.getenv(it) }
 android { namespace 'com.pixelchess.app'; compileSdk 35
- defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 30; versionName '0.26.1' }
+ defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 31; versionName '0.26.2' }
  signingConfigs { release { if (releaseSigningReady) { storeFile file(System.getenv('PIXELCHESS_KEYSTORE_PATH')); storePassword System.getenv('PIXELCHESS_STORE_PASSWORD'); keyAlias System.getenv('PIXELCHESS_KEY_ALIAS'); keyPassword System.getenv('PIXELCHESS_KEY_PASSWORD') } } }
  buildTypes { release { if (releaseSigningReady) signingConfig signingConfigs.release; minifyEnabled false } }
  buildFeatures { buildConfig true }

@@ -73,7 +73,26 @@ public final class ChessView extends View {
       }
       String q=gameState.pieceAt(r,x);if(q!=null&&!(animating&&r==animR2&&x==animC2))drawPieceSprite(c,q,left0+vx*s,top+vr*s,s);
     }
-    if(animating){float t=PieceMotion.progress(System.currentTimeMillis()-animStart,ANIM_MS),u=PieceMotion.eased(t);int fr=flip?7-animR1:animR1,fc=flip?7-animC1:animC1,tr=flip?7-animR2:animR2,tc=flip?7-animC2:animC2;float ax=left0+(fc+(tc-fc)*u)*s,ay=top+(fr+(tr-fr)*u)*s-PieceMotion.arc(t,s);drawPieceSprite(c,animPiece,ax,ay,s);if(capturedPiece!=null){p.setColor(Color.argb(Math.round(150*(1-t)),255,196,88));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1,s*.035f));float radius=s*(.15f+.38f*t);c.drawCircle(left0+(tc+.5f)*s,top+(tr+.5f)*s,radius,p);p.setStyle(Paint.Style.FILL);}if(t<1f)postInvalidateOnAnimation();else{animating=false;capturedPiece=null;}}
+    if(animating){
+      float t=PieceMotion.progress(System.currentTimeMillis()-animStart,ANIM_MS);
+      int fr=flip?7-animR1:animR1,fc=flip?7-animC1:animC1,tr=flip?7-animR2:animR2,tc=flip?7-animC2:animC2;
+      boolean knight=animPiece!=null&&Character.toLowerCase(animPiece.charAt(0))=='n'&&PieceMotion.isKnightMove(fr,fc,tr,tc);
+      float ax,ay;
+      if(knight){
+        ax=left0+PieceMotion.knightColumn(fr,fc,tr,tc,t)*s;
+        ay=top+PieceMotion.knightRow(fr,fc,tr,tc,t)*s;
+      }else{
+        float u=PieceMotion.eased(t);
+        ax=left0+(fc+(tc-fc)*u)*s;
+        ay=top+(fr+(tr-fr)*u)*s-PieceMotion.arc(t,s);
+      }
+      drawPieceSprite(c,animPiece,ax,ay,s);
+      if(capturedPiece!=null){
+        p.setColor(Color.argb(Math.round(150*(1-t)),255,196,88));p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1,s*.035f));
+        float radius=s*(.15f+.38f*t);c.drawCircle(left0+(tc+.5f)*s,top+(tr+.5f)*s,radius,p);p.setStyle(Paint.Style.FILL);
+      }
+      if(t<1f)postInvalidateOnAnimation();else{animating=false;capturedPiece=null;}
+    }
     p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,getResources().getDisplayMetrics().density));p.setColor(Color.argb(95,20,24,28));for(int i=0;i<=8;i++){c.drawLine(left0+i*s,top,left0+i*s,top+w,p);c.drawLine(left0,top+i*s,left0+w,top+i*s,p);}p.setStyle(Paint.Style.FILL);
     float den=getResources().getDisplayMetrics().density;
     if(themeRenderer.hasBackground())p.setShadowLayer(3*den,0,den,Color.BLACK);
@@ -94,10 +113,15 @@ public final class ChessView extends View {
     float in=Math.max(2f,size*.04f);c.drawRect(left+in,top+in,left+size-in,top+size-in,p);p.setStyle(Paint.Style.FILL);
   }
   void drawGoldMoveMarker(Canvas c,float left,float top,float size){
-    float cx=left+size/2f,cy=top+size/2f,d=size*.105f;
+    float cx=left+size/2f,cy=top+size/2f,d=size*.115f;
     Path diamond=new Path();diamond.moveTo(cx,cy-d);diamond.lineTo(cx+d,cy);diamond.lineTo(cx,cy+d);diamond.lineTo(cx-d,cy);diamond.close();
-    p.setStyle(Paint.Style.FILL);p.setColor(Color.rgb(218,174,75));c.drawPath(diamond,p);
-    p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,size*.018f));p.setColor(Color.rgb(247,214,132));c.drawPath(diamond,p);p.setStyle(Paint.Style.FILL);
+
+    p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(238,218,174,75));c.drawPath(diamond,p);
+
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(Math.max(2f,size*.034f));p.setColor(Color.argb(230,48,35,18));c.drawPath(diamond,p);
+    p.setStrokeWidth(Math.max(1f,size*.014f));p.setColor(Color.argb(245,255,226,143));c.drawPath(diamond,p);
+    p.setStyle(Paint.Style.FILL);
   }
   void loadPieceSprites(){
     pieceSprites.put('P',outlinedWhiteSprite(R.drawable.w_pawn));

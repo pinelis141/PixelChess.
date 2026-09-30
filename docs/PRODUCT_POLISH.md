@@ -1,7 +1,9 @@
-# Produto — 0.26.1
+# Produto — 0.26.2
 
 ## Arquitetura e UX
 
+- O losango de movimentos legais ganhou contorno escuro externo e realce interno para permanecer visível em casas claras e escuras.
+- O cavalo agora percorre visualmente uma trajetória em L, com dois segmentos, em vez de interpolar em linha direta até a casa de destino.
 - A casa da peça selecionada não recebe mais o mesmo destaque de um destino legal; apenas movimentos e capturas possíveis são marcados.
 - Capturas usam moldura própria e o histórico mostra `x` em vez de `-`, com reticências quando exibe apenas os lances mais recentes.
 - O histórico ganhou contraste ligeiramente maior e o contorno das peças brancas foi suavizado.
