@@ -69,7 +69,8 @@ public final class ChessGame {
   public static boolean isWhitePiece(String piece){
     return piece!=null&&Character.isUpperCase(piece.charAt(0));
   }
-\n  public boolean canPossiblyMate(boolean side){
+
+  public boolean canPossiblyMate(boolean side){
     for(int r=0;r<8;r++)for(int c=0;c<8;c++){
       String piece=board[r][c];
       if(piece!=null&&isWhitePiece(piece)==side&&Character.toLowerCase(piece.charAt(0))!='k')return true;
