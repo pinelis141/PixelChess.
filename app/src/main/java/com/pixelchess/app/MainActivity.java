@@ -16,7 +16,7 @@ import java.util.UUID;
 public class MainActivity extends Activity {
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
   static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
-  final BluetoothManager bluetooth=new BluetoothManager(); ChessView game; boolean bluetoothGame=false, myWhite=true; int selectedMinutes=10; BoardTheme selectedTheme=BoardThemes.CLASSIC; ThemePreferences themePreferences;
+  final BluetoothManager bluetooth=new BluetoothManager(); final AuthoritySequence authoritySequence=new AuthoritySequence(); ChessView game; boolean bluetoothGame=false, myWhite=true; int selectedMinutes=10; BoardTheme selectedTheme=BoardThemes.CLASSIC; ThemePreferences themePreferences;
   @Override public void onCreate(Bundle b){super.onCreate(b); themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE)); selectedTheme=themePreferences.load(); showMenu();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
@@ -57,44 +57,53 @@ public class MainActivity extends Activity {
   void chooseDevice(){Set<BluetoothDevice> ds=bluetooth.bondedDevices();if(ds.isEmpty()){toast("Nenhum aparelho pareado. Pareie os celulares primeiro.");return;}final ArrayList<BluetoothDevice> list=new ArrayList<>(ds);String[] names=new String[list.size()];for(int i=0;i<list.size();i++){String n=list.get(i).getName();names[i]=n==null?list.get(i).getAddress():n;}new AlertDialog.Builder(this).setTitle("Escolha o celular").setItems(names,(d,i)->connectGame(list.get(i))).show();}
   void connectGame(BluetoothDevice dev){toast("Conectando…");new Thread(()->{try{bluetooth.connect(dev,GAME_UUID);startBtGame(false);}catch(Exception e){runOnUiThread(()->toast("Não conectou: "+e.getMessage()));}}).start();}
   void startBtGame(boolean host)throws Exception{
-    bluetoothGame=true;myWhite=host;
+    bluetoothGame=true;myWhite=host;authoritySequence.reset();
     BufferedReader br=bluetooth.reader();
     if(host){
       writeBt(BluetoothGameProtocol.time(selectedMinutes));
     }else{
       BluetoothGameProtocol.Message setup=BluetoothGameProtocol.parse(br.readLine());
       if(!(setup instanceof BluetoothGameProtocol.Time))throw new IOException("Configuração da sala inválida");
-      selectedMinutes=((BluetoothGameProtocol.Time)setup).minutes;
+      BluetoothGameProtocol.Time time=(BluetoothGameProtocol.Time)setup;
+      if(time.version!=BluetoothGameProtocol.VERSION)throw new IOException("Versões incompatíveis. Atualize o PixelChess nos dois aparelhos.");
+      selectedMinutes=time.minutes;
     }
     runOnUiThread(()->{game=new ChessView(this);game.status=host?"VOCÊ É BRANCAS":"VOCÊ É PRETAS";setContentView(game);});
     String line;
     while((line=br.readLine())!=null){
       BluetoothGameProtocol.Message msg=BluetoothGameProtocol.parse(line);
-      if(msg instanceof BluetoothGameProtocol.Move){
+      if(host&&msg instanceof BluetoothGameProtocol.Play){
+        BluetoothGameProtocol.Play p=(BluetoothGameProtocol.Play)msg;
+        runOnUiThread(()->game.applyGuestPlay(p.r1,p.c1,p.r2,p.c2,p.promotion));
+      }else if(!host&&msg instanceof BluetoothGameProtocol.Move){
         BluetoothGameProtocol.Move m=(BluetoothGameProtocol.Move)msg;
-        runOnUiThread(()->game.remoteMove(m.r1,m.c1,m.r2,m.c2,m.promotion,m.whiteMs,m.blackMs));
-      }else if(msg instanceof BluetoothGameProtocol.Sync){
+        runOnUiThread(()->game.applyAuthorityMove(m));
+      }else if(!host&&msg instanceof BluetoothGameProtocol.Sync){
         BluetoothGameProtocol.Sync m=(BluetoothGameProtocol.Sync)msg;
-        runOnUiThread(()->game.applyClockSync(m.whiteMs,m.blackMs,m.whiteTurn));
-      }else if(msg instanceof BluetoothGameProtocol.Flag){
+        runOnUiThread(()->game.applyAuthoritySync(m));
+      }else if(!host&&msg instanceof BluetoothGameProtocol.Flag){
         BluetoothGameProtocol.Flag m=(BluetoothGameProtocol.Flag)msg;
-        runOnUiThread(()->game.applyRemoteFlag(m.loserWhite));
+        runOnUiThread(()->game.applyAuthorityFlag(m));
       }
+    }
+    if(bluetoothGame){
+      bluetoothGame=false;
+      runOnUiThread(()->{if(game!=null)game.applyConnectionLost();});
     }
   }
   void writeBt(String msg)throws IOException{bluetooth.write(msg);}
-  void sendMove(int r1,int c1,int r2,int c2){sendMove(r1,c1,r2,c2,"-");}
-  void sendMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||game==null)return;final long wm=game.matchClock.whiteMs(),bm=game.matchClock.blackMs();new Thread(()->{try{writeBt(BluetoothGameProtocol.move(r1,c1,r2,c2,promo,wm,bm));}catch(Exception e){runOnUiThread(()->toast("Conexão Bluetooth perdida"));}}).start();}
-  void sendClockSync(){if(!bluetoothGame||game==null)return;final long wm=game.matchClock.whiteMs(),bm=game.matchClock.blackMs();final boolean turn=game.gameState.whiteTurn();new Thread(()->{try{writeBt(BluetoothGameProtocol.sync(wm,bm,turn));}catch(Exception ignored){}}).start();}
-  void sendFlag(boolean loserWhite){if(!bluetoothGame)return;new Thread(()->{try{writeBt(BluetoothGameProtocol.flag(loserWhite));}catch(Exception ignored){}}).start();}
-  void closeBluetooth(){bluetoothGame=false;bluetooth.close();}
+  void requestMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||myWhite)return;new Thread(()->{try{writeBt(BluetoothGameProtocol.play(r1,c1,r2,c2,promo));}catch(Exception e){runOnUiThread(()->{toast("Conexão Bluetooth perdida");if(game!=null)game.applyConnectionLost();});}}).start();}
+  void sendAuthorityMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||!myWhite||game==null)return;final long seq=authoritySequence.next(),wm=game.matchClock.whiteMs(),bm=game.matchClock.blackMs();final boolean turn=game.gameState.whiteTurn();new Thread(()->{try{writeBt(BluetoothGameProtocol.move(r1,c1,r2,c2,promo,wm,bm,turn,seq));}catch(Exception e){runOnUiThread(()->{toast("Conexão Bluetooth perdida");if(game!=null)game.applyConnectionLost();});}}).start();}
+  void sendClockSync(){if(!bluetoothGame||!myWhite||game==null)return;final long seq=authoritySequence.next(),wm=game.matchClock.whiteMs(),bm=game.matchClock.blackMs();final boolean turn=game.gameState.whiteTurn();new Thread(()->{try{writeBt(BluetoothGameProtocol.sync(wm,bm,turn,seq));}catch(Exception ignored){}}).start();}
+  void sendFlag(boolean loserWhite){if(!bluetoothGame||!myWhite)return;final long seq=authoritySequence.next();new Thread(()->{try{writeBt(BluetoothGameProtocol.flag(loserWhite,seq));}catch(Exception ignored){}}).start();}
+  void closeBluetooth(){bluetoothGame=false;bluetooth.close();authoritySequence.reset();}
   void toast(String x){Toast.makeText(this,x,Toast.LENGTH_LONG).show();}
 
   class ChessView extends View {
     Paint p=new Paint(3); int sr=-1,sc=-1; String status="BRANCAS JOGAM";
     final ChessGame gameState=new ChessGame(); final GameClock matchClock;
     HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); final BoardThemeRenderer themeRenderer; final SceneGeometry boardGeometry=new SceneGeometry(); Paint spritePaint=new Paint();
-    boolean flagSent=false; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece; long animStart; final long ANIM_MS=200; Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
+    boolean flagSent=false,awaitingAuthority=false; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece; long animStart; final long ANIM_MS=200; Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
     ChessView(Context c){
       super(c);
       p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD));
@@ -105,21 +114,24 @@ public class MainActivity extends Activity {
       ticker=()->{
         if(!gameState.gameOver()){
           long now=System.currentTimeMillis();
-          GameClock.Tick tick=matchClock.tick(gameState.whiteTurn(),now);
-          if(tick.timedOut){
-            gameState.finish("TEMPO • "+(tick.loserWhite?"PRETAS":"BRANCAS")+" VENCEM");
-            status=gameState.status();
-            if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(tick.loserWhite);}
-          }else if(bluetoothGame&&myWhite&&matchClock.shouldSync(now,1000)){
-            sendClockSync();
+          if(!bluetoothGame||myWhite){
+            GameClock.Tick tick=matchClock.tick(gameState.whiteTurn(),now);
+            if(tick.timedOut){
+              gameState.finish("TEMPO • "+(tick.loserWhite?"PRETAS":"BRANCAS")+" VENCEM");
+              status=gameState.status();
+              if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(tick.loserWhite);}
+            }else if(bluetoothGame&&matchClock.shouldSync(now,500)){
+              sendClockSync();
+            }
+            invalidate();
           }
-          invalidate();clock.postDelayed(ticker,100);
+          clock.postDelayed(ticker,bluetoothGame&&!myWhite?250:100);
         }
       };
       clock.post(ticker);
     }
     @Override protected void onDetachedFromWindow(){clock.removeCallbacks(ticker);super.onDetachedFromWindow();}
-    void reset(){gameState.reset();flagSent=false;matchClock.reset(selectedMinutes,System.currentTimeMillis());status=gameState.status();invalidate();}
+    void reset(){gameState.reset();flagSent=false;awaitingAuthority=false;matchClock.reset(selectedMinutes,System.currentTimeMillis());status=gameState.status();invalidate();}
     protected void onDraw(Canvas c){
       super.onDraw(c);float den0=getResources().getDisplayMetrics().density;boardGeometry.update(getWidth(),getHeight(),den0,themeRenderer.hasScene());themeRenderer.drawBackground(c,getWidth(),getHeight(),bg,den0);float w=boardGeometry.size,s=w/8f,left0=boardGeometry.left,top=boardGeometry.top;
       p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
@@ -217,27 +229,41 @@ public class MainActivity extends Activity {
     void drawPixelPiece(Canvas c,String q,float left,float top,float size){String[] pat=pixelPattern(q.charAt(0));float cell=size/10f,ox=left+cell,oy=top+(size-pat.length*cell)/2f;boolean whitePiece=Character.isUpperCase(q.charAt(0));p.setStyle(Paint.Style.FILL);if(whitePiece){p.setColor(Color.rgb(35,38,40));for(int r=0;r<pat.length;r++)for(int x=0;x<pat[r].length();x++)if(pat[r].charAt(x)=='#')for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++)if(Math.abs(dx)+Math.abs(dy)==1)c.drawRect(ox+(x+dx)*cell,oy+(r+dy)*cell,ox+(x+dx+1)*cell,oy+(r+dy+1)*cell,p);}p.setColor(whitePiece?Color.rgb(248,245,232):Color.rgb(25,28,31));for(int r=0;r<pat.length;r++)for(int x=0;x<pat[r].length();x++)if(pat[r].charAt(x)=='#')c.drawRect(ox+x*cell,oy+r*cell,ox+(x+1)*cell,oy+(r+1)*cell,p);}
     void startMoveAnimation(String q,int r1,int c1,int r2,int c2){animPiece=q;animR1=r1;animC1=c1;animR2=r2;animC2=c2;animStart=System.currentTimeMillis();animating=true;postInvalidateOnAnimation();}
     public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;float den=getResources().getDisplayMetrics().density;boardGeometry.update(getWidth(),getHeight(),den,themeRenderer.hasScene());float gutter=boardGeometry.left,w=boardGeometry.size,s=w/8f,top=boardGeometry.top;if(e.getX()<gutter||e.getX()>=gutter+w||e.getY()<top||e.getY()>=top+w)return true;int vx=(int)((e.getX()-gutter)/s),vr=(int)((e.getY()-top)/s);if(vr<0||vr>7||vx<0||vx>7)return true;boolean flip=bluetoothGame&&!myWhite;int x=flip?7-vx:vx,r=flip?7-vr:vr;if(gameState.gameOver()){toast("A partida terminou");return true;}
-      if(bluetoothGame && gameState.whiteTurn()!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(gameState.pieceAt(r,x)!=null&&ChessGame.isWhitePiece(gameState.pieceAt(r,x))==gameState.whiteTurn()){select(r,x);}else if(gameState.isLegal(sr,sc,r,x)){int a=sr,d=sc;String moving=gameState.pieceAt(a,d);boolean promotes=moving!=null&&Character.toLowerCase(moving.charAt(0))=='p'&&(r==0||r==7);if(promotes)moveWithPromotionChoice(a,d,r,x);else{move(a,d,r,x,"-");sendMove(a,d,r,x,"-");}sr=sc=-1;invalidate();}return true;}
-    void remoteMove(int r1,int c1,int r2,int c2,String promo,long wm,long bm){if(bluetoothGame&&gameState.whiteTurn()!=myWhite&&gameState.isLegal(r1,c1,r2,c2)){move(r1,c1,r2,c2,promo);matchClock.sync(wm,bm,System.currentTimeMillis());sr=sc=-1;if(!gameState.gameOver()&&gameState.whiteTurn()==myWhite)vibrateTurn();invalidate();}}
-    void applyClockSync(long wm,long bm,boolean turn){if(!bluetoothGame||myWhite)return;matchClock.sync(wm,bm,System.currentTimeMillis());gameState.forceTurn(turn);invalidate();}
-    void applyRemoteFlag(boolean loserWhite){if(gameState.gameOver())return;matchClock.flag(loserWhite);gameState.finish("TEMPO • "+(loserWhite?"PRETAS":"BRANCAS")+" VENCEM");status=gameState.status();invalidate();}
+      if(awaitingAuthority){toast("Aguardando confirmação da jogada…");return true;}
+      if(bluetoothGame && gameState.whiteTurn()!=myWhite){toast("Aguarde a jogada do adversário");return true;} if(sr<0){select(r,x);}else if(sr==r&&sc==x){sr=sc=-1;invalidate();}else if(gameState.pieceAt(r,x)!=null&&ChessGame.isWhitePiece(gameState.pieceAt(r,x))==gameState.whiteTurn()){select(r,x);}else if(gameState.isLegal(sr,sc,r,x)){int a=sr,d=sc;String moving=gameState.pieceAt(a,d);boolean promotes=moving!=null&&Character.toLowerCase(moving.charAt(0))=='p'&&(r==0||r==7);if(promotes)moveWithPromotionChoice(a,d,r,x);else if(bluetoothGame&&!myWhite){awaitingAuthority=true;requestMove(a,d,r,x,"-");sr=sc=-1;invalidate();}else if(move(a,d,r,x,"-")){if(bluetoothGame)sendAuthorityMove(a,d,r,x,"-");sr=sc=-1;invalidate();}}return true;}
+    void applyGuestPlay(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||!myWhite||gameState.gameOver()||gameState.whiteTurn()==myWhite)return;if(!gameState.isLegal(r1,c1,r2,c2)){sendClockSync();return;}if(move(r1,c1,r2,c2,promo)){sendAuthorityMove(r1,c1,r2,c2,promo);if(!gameState.gameOver()&&gameState.whiteTurn()==myWhite)vibrateTurn();invalidate();}}
+    void applyAuthorityMove(BluetoothGameProtocol.Move m){if(!bluetoothGame||myWhite||!authoritySequence.accept(m.sequence))return;awaitingAuthority=false;if(gameState.isLegal(m.r1,m.c1,m.r2,m.c2)){move(m.r1,m.c1,m.r2,m.c2,m.promotion);}gameState.forceTurn(m.whiteTurn);matchClock.sync(m.whiteMs,m.blackMs,System.currentTimeMillis());status=gameState.status();sr=sc=-1;if(!gameState.gameOver()&&gameState.whiteTurn()==myWhite)vibrateTurn();invalidate();}
+    void applyAuthoritySync(BluetoothGameProtocol.Sync m){if(!bluetoothGame||myWhite||!authoritySequence.accept(m.sequence))return;matchClock.sync(m.whiteMs,m.blackMs,System.currentTimeMillis());gameState.forceTurn(m.whiteTurn);invalidate();}
+    void applyAuthorityFlag(BluetoothGameProtocol.Flag m){if(!bluetoothGame||myWhite||!authoritySequence.accept(m.sequence)||gameState.gameOver())return;awaitingAuthority=false;matchClock.flag(m.loserWhite);gameState.finish("TEMPO • "+(m.loserWhite?"PRETAS":"BRANCAS")+" VENCEM");status=gameState.status();invalidate();}
+    void applyConnectionLost(){awaitingAuthority=false;if(!gameState.gameOver()){gameState.finish("CONEXÃO BLUETOOTH PERDIDA");status=gameState.status();invalidate();}}
     void vibrateTurn(){try{Vibrator v=(Vibrator)getSystemService(Context.VIBRATOR_SERVICE);if(v==null||!v.hasVibrator())return;if(Build.VERSION.SDK_INT>=26)v.vibrate(VibrationEffect.createOneShot(70,VibrationEffect.DEFAULT_AMPLITUDE));else v.vibrate(70);}catch(Exception ignored){}}
     void moveWithPromotionChoice(int r1,int c1,int r2,int c2){
       final boolean side=ChessGame.isWhitePiece(gameState.pieceAt(r1,c1));final String[] labels={"DAMA","TORRE","BISPO","CAVALO"},pcs={"Q","R","B","N"};
       LinearLayout box=new LinearLayout(MainActivity.this);box.setOrientation(LinearLayout.VERTICAL);box.setPadding(32,16,32,16);
       AlertDialog dialog=new AlertDialog.Builder(MainActivity.this).setTitle("PROMOÇÃO").setMessage("Escolha a peça:").setView(box).setCancelable(false).create();
-      for(int i=0;i<4;i++){final int k=i;Button bt=button(labels[i]);bt.setTextColor(Color.BLACK);bt.setBackgroundColor(Color.rgb(238,238,238));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,6,0,6);box.addView(bt,lp);bt.setOnClickListener(v->{String z=pcs[k];if(!side)z=z.toLowerCase();move(r1,c1,r2,c2,z);sendMove(r1,c1,r2,c2,z);dialog.dismiss();invalidate();});}
+      for(int i=0;i<4;i++){final int k=i;Button bt=button(labels[i]);bt.setTextColor(Color.BLACK);bt.setBackgroundColor(Color.rgb(238,238,238));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,6,0,6);box.addView(bt,lp);bt.setOnClickListener(v->{String z=pcs[k];if(!side)z=z.toLowerCase();if(bluetoothGame&&!myWhite){awaitingAuthority=true;requestMove(r1,c1,r2,c2,z);}else if(move(r1,c1,r2,c2,z)&&bluetoothGame){sendAuthorityMove(r1,c1,r2,c2,z);}dialog.dismiss();invalidate();});}
       dialog.show();
     }
     void select(int r,int c){String q=gameState.pieceAt(r,c);if(q!=null&&ChessGame.isWhitePiece(q)==gameState.whiteTurn()){sr=r;sc=c;invalidate();}}
-    void move(int r1,int c1,int r2,int c2,String promotion){
+    boolean move(int r1,int c1,int r2,int c2,String promotion){
       String piece=gameState.pieceAt(r1,c1);
-      if(piece==null)return;
-      startMoveAnimation(piece,r1,c1,r2,c2);
-      if(gameState.move(r1,c1,r2,c2,promotion)){
-        matchClock.markTurnChanged(System.currentTimeMillis());
-        status=gameState.status();
+      if(piece==null)return false;
+      long now=System.currentTimeMillis();
+      if(!bluetoothGame||myWhite){
+        GameClock.Tick tick=matchClock.tick(gameState.whiteTurn(),now);
+        if(tick.timedOut){
+          gameState.finish("TEMPO • "+(tick.loserWhite?"PRETAS":"BRANCAS")+" VENCEM");
+          status=gameState.status();
+          if(bluetoothGame&&!flagSent){flagSent=true;sendFlag(tick.loserWhite);}
+          invalidate();
+          return false;
+        }
       }
+      startMoveAnimation(piece,r1,c1,r2,c2);
+      if(!gameState.move(r1,c1,r2,c2,promotion))return false;
+      matchClock.markTurnChanged(now);
+      status=gameState.status();
+      return true;
     }
   }
 }
