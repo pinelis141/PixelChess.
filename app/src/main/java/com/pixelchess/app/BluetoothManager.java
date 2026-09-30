@@ -11,6 +11,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /** Owns Bluetooth sockets and byte transport. Game protocol/state live elsewhere. */
 public final class BluetoothManager {
@@ -19,6 +21,9 @@ public final class BluetoothManager {
   private BluetoothServerSocket serverSocket;
   private OutputStream out;
   private final Object writeLock=new Object();
+  private final ExecutorService writer=Executors.newSingleThreadExecutor();
+
+  public interface WriteCallback { void onError(Exception error); }
 
   public void setAdapter(BluetoothAdapter adapter){this.adapter=adapter;}
   public BluetoothAdapter adapter(){return adapter;}
@@ -54,6 +59,14 @@ public final class BluetoothManager {
       out.write((message+"\n").getBytes("UTF-8"));
       out.flush();
     }
+  }
+
+  /** Preserves invocation order for all gameplay packets. */
+  public void writeAsync(String message,WriteCallback callback){
+    writer.execute(()->{
+      try{write(message);}
+      catch(Exception e){if(callback!=null)callback.onError(e);}
+    });
   }
 
   public void close(){
