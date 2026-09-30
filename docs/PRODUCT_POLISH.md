@@ -1,7 +1,15 @@
-# Produto — 0.26.5
+# Produto — 0.27.0
 
 ## Arquitetura e UX
 
+- Hardening 0.27.0: o relógio da partida usa tempo monotônico do Android, sem depender de alterações no relógio civil do aparelho.
+- Timeout agora encerra a UI de forma atômica: limpa seleção, animação pendente e diálogo de promoção antes de mostrar o resultado.
+- Captura en passant é identificada como captura também no renderer e recebe o mesmo marcador visual das demais capturas.
+- O botão Voltar encerra o aplicativo quando já está no menu principal; em telas internas volta ao menu e em partida ativa continua exigindo confirmação.
+- Chamadas Bluetooth protegidas tratam revogação/negação de permissão sem derrubar o app, e o Android Lint passou a bloquear a CI em erros estáticos.
+- Sons de jogada são inicializados sob demanda e falhas de áudio deixam de comprometer a abertura do aplicativo.
+- A suíte inclui auditoria perft permanente para posição inicial e posições de referência com roque, promoção, xeques, cravadas e peças de longo alcance.
+- O Android Gradle Plugin foi atualizado para a linha compatível com API 35.
 - No modo local, toques do próximo jogador não são mais descartados enquanto a animação da jogada anterior ainda termina; o estado já trocou de turno, então a próxima seleção pode ser feita imediatamente.
 - Foram adicionadas regressões para jogadas rápidas de brancas e pretas no mesmo aparelho e para mobilidade de torre, bispo e rainha com caminho livre em ambos os lados.
 - A última jogada permanece destacada no tabuleiro, marcando origem e destino com um realce dourado discreto e diferente dos marcadores de movimento possível.
@@ -35,9 +43,9 @@ Limites: retomada em memória enquanto a partida continua aberta nos dois aplica
 
 ## Regressão
 
-Testes cobrem afogamento versus mate, limite de 100 meios-lances e reinício do contador por captura/peão, material insuficiente, roque, en passant, promoção, turno incorreto, repetição com en passant irrelevante, retomada por replay e rejeição de partidas/protocolos diferentes. Testes da View conferem pausa, restauração dos relógios e divergência de turnos.
+Testes cobrem afogamento versus mate, limite de 100 meios-lances e reinício do contador por captura/peão, material insuficiente, roque, en passant, promoção, turno incorreto, repetição com en passant irrelevante, retomada por replay e rejeição de partidas/protocolos diferentes. Testes da View conferem pausa, restauração dos relógios, timeout e divergência de turnos. A auditoria perft valida 20/400/8.902 nós na posição inicial e posições adicionais de referência.
 
-A CI verifica os assets-base da Floresta, executa a suíte Android e gera APK debug, APK release e AAB. Os dois pacotes release são artefatos separados. Na ausência dos quatro segredos de assinatura, são **sem assinatura**. Ícone e áudio ainda exigem aprovação no aparelho; retomada deve ser ensaiada com dois celulares físicos antes de distribuir.
+A CI verifica os assets-base da Floresta, executa a suíte Android, roda Android Lint e só então gera APK debug, APK release e AAB. Os dois pacotes release são artefatos separados. Na ausência dos quatro segredos de assinatura, são **sem assinatura**. Ícone e áudio ainda exigem aprovação no aparelho; retomada deve ser ensaiada com dois celulares físicos antes de distribuir.
 
 ## Assinatura
 
