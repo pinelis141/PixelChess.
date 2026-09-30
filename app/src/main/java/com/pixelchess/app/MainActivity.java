@@ -12,11 +12,12 @@ import android.bluetooth.*;
 import java.util.*;
 import java.io.*;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class MainActivity extends Activity {
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
   static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
-  final BluetoothManager bluetooth=new BluetoothManager(); final AuthoritySequence authoritySequence=new AuthoritySequence(); ChessView game; boolean bluetoothGame=false, myWhite=true; int selectedMinutes=10; BoardTheme selectedTheme=BoardThemes.CLASSIC; ThemePreferences themePreferences;
+  final BluetoothManager bluetooth=new BluetoothManager(); final AuthoritySequence authoritySequence=new AuthoritySequence(); final AtomicLong bluetoothSessions=new AtomicLong(); volatile long activeBluetoothSession; ChessView game; boolean bluetoothGame=false, myWhite=true; int selectedMinutes=10; BoardTheme selectedTheme=BoardThemes.CLASSIC; ThemePreferences themePreferences;
   @Override public void onCreate(Bundle b){super.onCreate(b); themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE)); selectedTheme=themePreferences.load(); showMenu();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
@@ -57,6 +58,7 @@ public class MainActivity extends Activity {
   void chooseDevice(){Set<BluetoothDevice> ds=bluetooth.bondedDevices();if(ds.isEmpty()){toast("Nenhum aparelho pareado. Pareie os celulares primeiro.");return;}final ArrayList<BluetoothDevice> list=new ArrayList<>(ds);String[] names=new String[list.size()];for(int i=0;i<list.size();i++){String n=list.get(i).getName();names[i]=n==null?list.get(i).getAddress():n;}new AlertDialog.Builder(this).setTitle("Escolha o celular").setItems(names,(d,i)->connectGame(list.get(i))).show();}
   void connectGame(BluetoothDevice dev){toast("Conectando…");new Thread(()->{try{bluetooth.connect(dev,GAME_UUID);startBtGame(false);}catch(Exception e){runOnUiThread(()->toast("Não conectou: "+e.getMessage()));}}).start();}
   void startBtGame(boolean host)throws Exception{
+    final long session=bluetoothSessions.incrementAndGet();activeBluetoothSession=session;
     bluetoothGame=true;myWhite=host;authoritySequence.reset();
     BufferedReader br=bluetooth.reader();
     if(host){
@@ -89,18 +91,18 @@ public class MainActivity extends Activity {
         runOnUiThread(()->game.applyAuthorityReject(m));
       }
     }
-    if(bluetoothGame){
-      bluetoothGame=false;
-      runOnUiThread(()->{if(game!=null)game.applyConnectionLost();});
+    if(bluetoothGame&&session==activeBluetoothSession){
+      runOnUiThread(()->handleConnectionLost(session));
     }
   }
   void writeBt(String msg)throws IOException{bluetooth.write(msg);}
-  void requestMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||myWhite)return;bluetooth.writeAsync(BluetoothGameProtocol.play(r1,c1,r2,c2,promo),e->runOnUiThread(()->{toast("Conexão Bluetooth perdida");if(game!=null)game.applyConnectionLost();}));}
+  void requestMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||myWhite)return;bluetooth.writeAsync(BluetoothGameProtocol.play(r1,c1,r2,c2,promo),e->runOnUiThread(()->{toast("Conexão Bluetooth perdida");handleConnectionLost(activeBluetoothSession);}));}
   void sendAuthorityMove(int r1,int c1,int r2,int c2,String promo){if(!bluetoothGame||!myWhite||game==null)return;final long seq=authoritySequence.next(),wm=game.matchClock.whiteMs(),bm=game.matchClock.blackMs();final boolean turn=game.gameState.whiteTurn();bluetooth.writeAsync(BluetoothGameProtocol.move(r1,c1,r2,c2,promo,wm,bm,turn,seq),e->runOnUiThread(()->{toast("Conexão Bluetooth perdida");if(game!=null)game.applyConnectionLost();}));}
   void sendClockSync(){if(!bluetoothGame||!myWhite||game==null)return;final long seq=authoritySequence.next(),wm=game.matchClock.whiteMs(),bm=game.matchClock.blackMs();final boolean turn=game.gameState.whiteTurn();bluetooth.writeAsync(BluetoothGameProtocol.sync(wm,bm,turn,seq),null);}
   void sendFlag(boolean loserWhite){if(!bluetoothGame||!myWhite)return;final long seq=authoritySequence.next();bluetooth.writeAsync(BluetoothGameProtocol.flag(loserWhite,seq),null);}
   void sendReject(){if(!bluetoothGame||!myWhite||game==null)return;final long seq=authoritySequence.next(),wm=game.matchClock.whiteMs(),bm=game.matchClock.blackMs();final boolean turn=game.gameState.whiteTurn();bluetooth.writeAsync(BluetoothGameProtocol.reject(wm,bm,turn,seq),null);}
-  void closeBluetooth(){bluetoothGame=false;bluetooth.close();authoritySequence.reset();}
+  void handleConnectionLost(long session){if(!bluetoothGame||session!=activeBluetoothSession)return;bluetoothGame=false;bluetooth.close();authoritySequence.reset();if(game!=null)game.applyConnectionLost();}
+  void closeBluetooth(){bluetoothGame=false;activeBluetoothSession=bluetoothSessions.incrementAndGet();bluetooth.close();authoritySequence.reset();}
   void toast(String x){Toast.makeText(this,x,Toast.LENGTH_LONG).show();}
 
   class ChessView extends View {
