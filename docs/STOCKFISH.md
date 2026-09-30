@@ -12,7 +12,8 @@ ChessView -> BotController -> ChessEngine -> StockfishEngine -> official Stockfi
 BotController uses one worker and posts callbacks to the main Handler. Immutable EnginePosition
 uses `position startpos moves ...`, including the whole game (not just a FEN that loses repetitions).
 EngineMove accepts only UCI coordinate moves with optional q/r/b/n. A replayed ChessGame validates
-that response, then ChessView applies it through the same move/clock/animation/audio path.
+that response on the worker, then ChessView checks that the live transcript still matches and
+applies it through the same move/clock/animation/audio path. Full transcript replay does not block UI.
 Human input is restricted to the chosen color. Bluetooth selection and authority code remain intact.
 
 The bot uses the existing monotonic GameClock, including thinking/startup time and the existing

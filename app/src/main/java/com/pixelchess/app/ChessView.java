@@ -57,7 +57,6 @@ public final class ChessView extends View {
           public void onMove(EnginePosition position,EngineMove move){
             if(botPaused||botFailed||gameState.gameOver()||gameState.whiteTurn()==humanWhite||!gameState.transcript().equals(position.transcript))return;
             try{
-              if(!move.legalIn(gameState)){failBot();return;}
               if(applyMove(move.fromRow,move.fromCol,move.toRow,move.toCol,move.promotion)){
                 if(!gameState.gameOver())vibrateTurn();invalidate();
               }else if(!gameState.gameOver())failBot();

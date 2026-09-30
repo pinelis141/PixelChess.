@@ -28,6 +28,7 @@ public final class BotController implements AutoCloseable {
     pending=worker.submit(()->{
       try{
         EngineMove move=EngineMove.parse(engine.search(position,difficulty,remainingMs));
+        if(!move.legalIn(position))throw new java.io.IOException("Illegal engine move");
         callback.execute(()->{if(closed||token!=generation)return;thinking=false;listener.onMove(position,move);});
       }catch(Exception failure){
         callback.execute(()->{if(closed||token!=generation)return;thinking=false;close();listener.onFailure("O motor de xadrez não respondeu corretamente. Volte ao menu e tente novamente.");});

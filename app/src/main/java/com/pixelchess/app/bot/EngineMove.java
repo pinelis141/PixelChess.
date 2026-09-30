@@ -19,7 +19,10 @@ public final class EngineMove {
   public boolean legalIn(ChessGame game){
     if(game.gameOver())return false;
     // Validate promotion, turn, king safety, and every special move with existing rules.
-    ChessGame copy=ChessGame.replay(game.transcript());
+    return legalIn(EnginePosition.from(game));
+  }
+  public boolean legalIn(EnginePosition position){
+    ChessGame copy=ChessGame.replay(position.transcript);
     return copy.move(fromRow,fromCol,toRow,toCol,promotion);
   }
 }
