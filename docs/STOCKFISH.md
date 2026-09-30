@@ -82,6 +82,15 @@ Official Stockfish 19 UCI_Elo range is 1320..3190. LimitStrength overrides Skill
 The Easy setting instead uses native skill reduction and one-ply search to be markedly weaker;
 it does not claim a measured beginner Elo. Playtesting is still needed to confirm beginner fit.
 Normal uses native Skill Level 4 and a smaller depth/node budget to soften the jump from Easy.
+Easy additionally uses limited attention on 25% of requests: when not in check and more than
+three legal root moves exist, select three uniformly shuffled legal candidates and pass them
+to Stockfish using the official UCI searchmoves command. Other requests use the original
+Skill 0 search. Stockfish still chooses; this is not a Java evaluation/search engine.
+ChessGame generates the allowed moves and validates the final reply. Forced positions and
+check keep every defense available; promotion includes q/r/b/n. Candidate enumeration runs
+on the worker and responds to cancellation. No effect on the approved 2-second pacing.
+This is a moderate initial reduction based on phone feedback, not a calibrated Elo promise.
+
 The other Elo values are strength targets, not ratings calibrated for these mobile time/node caps.
 Maximum enables full strength within a single-thread bounded smartphone resource budget.
 

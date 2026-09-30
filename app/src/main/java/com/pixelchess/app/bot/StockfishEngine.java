@@ -3,6 +3,8 @@ package com.pixelchess.app.bot;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.*;
+import java.util.List;
+import java.util.Random;
 
 /** Separate official executable, stdin/stdout UCI, bounded protocol waits and output. */
 public final class StockfishEngine implements ChessEngine {
@@ -16,7 +18,9 @@ public final class StockfishEngine implements ChessEngine {
   private BufferedWriter input;
   private Thread reader;
   private boolean initialized;
-  public StockfishEngine(String executable){this.executable=executable;}
+  private final Random easyRandom;
+  public StockfishEngine(String executable){this(executable,new Random());}
+  StockfishEngine(String executable,Random easyRandom){this.executable=executable;this.easyRandom=easyRandom;}
   @Override public String search(EnginePosition position,BotDifficulty level,long remainingMs) throws Exception {
     if(closed)throw new IOException("Engine closed");
     // Also bounds startup and blocked stdin writes, not only stdout polling.
@@ -27,7 +31,13 @@ public final class StockfishEngine implements ChessEngine {
       send("setoption name Skill Level value "+level.skill);
       if(level.elo>0)send("setoption name UCI_Elo value "+level.elo);
       send("isready");await("readyok",deadline(3000));
-      send(position.command);send(level.go(remainingMs));
+      send(position.command);
+      String go=level.go(remainingMs);
+      if(level==BotDifficulty.EASY){
+        List<String> candidates=EasyMovePolicy.candidates(position,easyRandom);
+        if(!candidates.isEmpty())go+=" searchmoves "+String.join(" ",candidates);
+      }
+      send(go);
       String reply=await("bestmove ",deadline(level.budget(remainingMs)+2000));
       if(closed)throw new IOException("Engine deadline exceeded");
       return reply.split("\\s+")[1];
