@@ -1,15 +1,20 @@
-# Produto — 0.25.0
+# Produto — 0.26.0
 
 ## Arquitetura e UX
 
+- O destaque vermelho do rei agora é exclusivo de xeque-mate; término por tempo não é confundido visualmente com mate.
+- Sair de uma partida ativa pelo botão Voltar exige confirmação, evitando abandono acidental.
+- Sprites brancos recebem contorno fino de contraste no renderer, independentemente do PNG de origem.
 - `ChessView` agora é uma classe independente. Recebe tema, tempo, lado e a interface `Actions`; não referencia `MainActivity` nem abre sockets.
 - `BluetoothMatchController` controla tentativas, cancelamento, handshake, timeout, envio e descarte de mensagens de sessões antigas. `BluetoothManager` mantém apenas o transporte.
 - `ChessGame` continua puro; valida a cor do turno e a promoção antes de modificar o estado. A chave de repetição só considera en passant quando há captura legal e os direitos efetivos de roque.
 - Configurações, ícone inicial, música, sons opcionais e os temas aprovados continuam disponíveis. A orientação do jogador é mantida após perda da conexão.
 
+- Novas skins foram deliberadamente adiadas; o catálogo desta versão permanece Tradicional, Floresta Ancestral, Castelo Medieval e Forja Vulcânica.
+
 ## Retomada Bluetooth
 
-Os dois aparelhos devem usar 0.25.0 ou posterior compatível (protocolo 3).
+Os dois aparelhos devem usar 0.26.0 ou posterior compatível (protocolo 3).
 Ao detectar a interrupção, cada aparelho mantém a partida e pausa o relógio local.
 O usuário toca em **Reconectar** nos dois aparelhos. O anfitrião volta a aguardar; o convidado tenta o mesmo aparelho pareado.
 
