@@ -15,14 +15,22 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
 public class MainActivity extends Activity {
+  MenuMusicController menuMusic;
   int bg=Color.rgb(20,24,28), cream=Color.rgb(235,221,184), green=Color.rgb(75,96,67);
   static final UUID GAME_UUID=UUID.fromString("7e57c0de-5049-5845-4c43-484553530001");
   final BluetoothManager bluetooth=new BluetoothManager(); final AuthoritySequence authoritySequence=new AuthoritySequence(); final AtomicLong bluetoothSessions=new AtomicLong(); volatile long activeBluetoothSession; ChessView game; boolean bluetoothGame=false, myWhite=true; int selectedMinutes=10; BoardTheme selectedTheme=BoardThemes.CLASSIC; ThemePreferences themePreferences;
-  @Override public void onCreate(Bundle b){super.onCreate(b); themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE)); selectedTheme=themePreferences.load(); showMenu();}
+  @Override public void onCreate(Bundle b){super.onCreate(b); menuMusic=new MenuMusicController(this);setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC); themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE)); selectedTheme=themePreferences.load(); showMenu();}
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
   Button button(String s){ Button b=new Button(this); b.setText(s); b.setTextSize(18); b.setAllCaps(false); b.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return b; }
 
+  @Override protected void onResume(){super.onResume();menuMusic.setForeground(true);}
+  @Override protected void onPause(){menuMusic.setForeground(false);super.onPause();}
+  @Override protected void onDestroy(){menuMusic.release();super.onDestroy();}
+  @Override public void setContentView(View view){
+    if(menuMusic!=null)menuMusic.setMenuVisible(false);
+    super.setContentView(view);
+  }
   void showMenu(){
     LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER); box.setPadding(40,40,40,40); box.setBackgroundColor(bg);
     TextView logo=title("♜  PIXEL CHESS  ♞",30); box.addView(logo,new LinearLayout.LayoutParams(-1,-2));
@@ -31,7 +39,16 @@ public class MainActivity extends Activity {
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
     Button skin=button("▣ Skin: "+selectedTheme.name); skin.setOnClickListener(v->chooseSkin()); box.addView(skin,new LinearLayout.LayoutParams(-1,-2));
     TextView ver=title("\nMVP "+BuildConfig.VERSION_NAME+" • Temas",12); ver.setTextColor(Color.GRAY); box.addView(ver);
-    setContentView(box);
+    float den=getResources().getDisplayMetrics().density;
+    FrameLayout root=new FrameLayout(this);root.setBackgroundColor(bg);
+    box.setPadding(40,40,40,(int)(80*den));
+    root.addView(box,new FrameLayout.LayoutParams(-1,-1));
+    MusicToggleButton mute=new MusicToggleButton(this);mute.setMuted(menuMusic.isMuted());
+    FrameLayout.LayoutParams corner=new FrameLayout.LayoutParams((int)(48*den),(int)(48*den),Gravity.BOTTOM|Gravity.RIGHT);
+    corner.setMargins(0,0,(int)(16*den),(int)(16*den));
+    root.addView(mute,corner);
+    mute.setOnClickListener(v->{menuMusic.toggleMuted();mute.setMuted(menuMusic.isMuted());});
+    setContentView(root);menuMusic.setMenuVisible(true);
   }
   void chooseSkin(){
     setContentView(new ThemeSelectorView(this,BoardThemes.ALL,selectedTheme.id,new ThemeSelectorView.Listener(){
