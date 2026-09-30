@@ -22,6 +22,7 @@ public final class BluetoothManager {
   private OutputStream out;
   private final Object writeLock=new Object();
   private final ExecutorService writer=Executors.newSingleThreadExecutor();
+  private long sessionGeneration;
 
   public interface WriteCallback { void onError(Exception error); }
 
@@ -37,7 +38,7 @@ public final class BluetoothManager {
     socket=serverSocket.accept();
     serverSocket.close();
     serverSocket=null;
-    out=socket.getOutputStream();
+    synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
   }
 
   public void connect(BluetoothDevice device,UUID uuid)throws IOException {
@@ -45,7 +46,7 @@ public final class BluetoothManager {
     socket=device.createRfcommSocketToServiceRecord(uuid);
     adapter.cancelDiscovery();
     socket.connect();
-    out=socket.getOutputStream();
+    synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
   }
 
   public BufferedReader reader()throws IOException {
@@ -63,16 +64,25 @@ public final class BluetoothManager {
 
   /** Preserves invocation order for all gameplay packets. */
   public void writeAsync(String message,WriteCallback callback){
+    final long session;
+    synchronized(writeLock){session=sessionGeneration;}
     writer.execute(()->{
-      try{write(message);}
-      catch(Exception e){if(callback!=null)callback.onError(e);}
+      try{
+        synchronized(writeLock){
+          if(session!=sessionGeneration)return;
+          if(out==null)throw new IOException("Sem conexão");
+          out.write((message+"\n").getBytes("UTF-8"));
+          out.flush();
+        }
+      }catch(Exception e){if(callback!=null)callback.onError(e);}
     });
   }
 
   public void close(){
+    synchronized(writeLock){sessionGeneration++;out=null;}
     try{if(serverSocket!=null)serverSocket.close();}catch(Exception ignored){}
     try{if(socket!=null)socket.close();}catch(Exception ignored){}
-    serverSocket=null;socket=null;out=null;
+    serverSocket=null;socket=null;
   }
 
   private void requireAdapter()throws IOException {
