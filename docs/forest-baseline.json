@@ -1,0 +1,25 @@
+{
+  "approved_date": "2026-09-29",
+  "device": "Samsung Galaxy S23 Ultra",
+  "version": "0.15.0",
+  "commit": "fe145b7940b0aae9ff9d526a03e9fbaff15d6e12",
+  "scope": "Aprovação visual no aparelho; não comprova regras ou Bluetooth.",
+  "assets": [
+    {
+      "path": "app/src/main/res/drawable-nodpi/forest_board.webp",
+      "git_blob_sha": "2ebaa653d4337455fe4a115dd95e61e2e531b367"
+    },
+    {
+      "path": "app/src/main/res/drawable-nodpi/forest_clock_plaque.webp",
+      "git_blob_sha": "64eeddd4d1f881db05c5ce13dada3dad979e8dd8"
+    },
+    {
+      "path": "app/src/main/res/drawable-nodpi/forest_floor.webp",
+      "git_blob_sha": "0439e84e296bf85ac50a0e5cfc13937577bbf6be"
+    },
+    {
+      "path": "app/src/main/res/drawable-nodpi/forest_stone_frame.webp",
+      "git_blob_sha": "f4d43370f65668d56dddc2b48820fd7b4d1f68e6"
+    }
+  ]
+}
