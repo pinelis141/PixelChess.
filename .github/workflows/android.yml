@@ -51,6 +51,11 @@ jobs:
       - name: Android static analysis
         run: gradle :app:lintDebug
 
+      - name: Show lint findings for audit
+        run: |
+          if [ -f app/build/reports/lint-results-debug.txt ]; then cat app/build/reports/lint-results-debug.txt; fi
+          if [ -f app/build/reports/lint-results-debug.xml ]; then cat app/build/reports/lint-results-debug.xml; fi
+
       - name: Build debug and release packages
         run: gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
