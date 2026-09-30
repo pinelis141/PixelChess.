@@ -70,7 +70,16 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
       @Override public void onClose(){showMenu();}
     }));
   }
-  @Override public void onBackPressed(){showMenu();}
+  @Override public void onBackPressed(){
+    if(game!=null&&!game.gameState.gameOver()){
+      new AlertDialog.Builder(this).setTitle("Sair da partida?")
+        .setMessage("A partida atual será encerrada. Deseja voltar ao menu?")
+        .setPositiveButton("SAIR",(d,w)->showMenu())
+        .setNegativeButton("CONTINUAR",null).show();
+      return;
+    }
+    showMenu();
+  }
   boolean btPermission(){
     if(Build.VERSION.SDK_INT>=31&&(checkSelfPermission("android.permission.BLUETOOTH_CONNECT")!=PackageManager.PERMISSION_GRANTED||checkSelfPermission("android.permission.BLUETOOTH_SCAN")!=PackageManager.PERMISSION_GRANTED)){
       requestPermissions(new String[]{"android.permission.BLUETOOTH_CONNECT","android.permission.BLUETOOTH_SCAN"},42);return false;
