@@ -41,7 +41,7 @@ public final class ChessView extends View {
   boolean boardFlipped(){return botGame?!humanWhite:bluetoothGame?!myWhite:gamePreferences.blackAtBottom();}
   boolean humanCanPlay(){return !botGame||(!botPaused&&!botFailed&&gameState.whiteTurn()==humanWhite);}
   void pauseBot(){if(!botGame)return;botPaused=true;stopBot();}
-  void stopBot(){if(botController!=null){botController.close();botController=null;}}
+  void stopBot(){if(botGame)botPaused=true;if(botController!=null){botController.close();botController=null;}}
   void resumeBot(){
     if(!botGame||gameState.gameOver()||botFailed)return;
     botPaused=false;

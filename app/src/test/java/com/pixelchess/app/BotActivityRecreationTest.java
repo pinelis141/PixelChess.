@@ -46,7 +46,7 @@ public class BotActivityRecreationTest {
     try{
       TestActivity a=controller.get();a.startBotMatch(true,BotDifficulty.NORMAL);a.botFailed("Teste de falha");
       android.app.AlertDialog dialog=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();assertTrue(dialog.isShowing());
-      dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();assertNull(a.game);assertTrue(a.mainMenuVisible);assertFalse(a.isFinishing());
+      dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).performClick();Shadows.shadowOf(Looper.getMainLooper()).idle();assertNull(a.game);assertTrue(a.mainMenuVisible);assertFalse(a.isFinishing());
     }finally{controller.pause().stop().destroy();}
   }
 }

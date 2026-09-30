@@ -48,4 +48,49 @@ public class EngineContractTest {
     StockfishEngine engine=new StockfishEngine("/does/not/exist");
     try{engine.search(EnginePosition.from(new ChessGame()),BotDifficulty.EASY,60000);fail();}catch(IOException expected){}finally{engine.close();}
   }
+  @Test public void allDifficultiesApplyDifferentUciSettingsToTransport()throws Exception{
+    Path dir=Files.createTempDirectory("uci-levels");Path exe=dir.resolve("engine"),log=dir.resolve("commands");
+    String script="#!/bin/sh\nwhile IFS= read -r line; do\n echo \"$line\" >> '"+log+"'\n case \"$line\" in\n uci) echo uciok;;\n isready) echo readyok;;\n go*) echo 'bestmove e2e4';;\n esac\ndone\n";
+    Files.write(exe,script.getBytes(java.nio.charset.StandardCharsets.UTF_8));assertTrue(exe.toFile().setExecutable(true));
+    StockfishEngine engine=new StockfishEngine(exe.toString());
+    try{
+      for(BotDifficulty d:BotDifficulty.values()){
+        Files.write(log,new byte[0]);engine.search(EnginePosition.from(new ChessGame()),d,60000);
+        String commands=new String(Files.readAllBytes(log),java.nio.charset.StandardCharsets.UTF_8);
+        assertTrue(commands.contains("setoption name UCI_LimitStrength value "+(d.elo>0)));
+        assertTrue(commands.contains("setoption name Skill Level value "+d.skill));
+        if(d.elo>0)assertTrue(commands.contains("setoption name UCI_Elo value "+d.elo));
+        assertTrue(commands.contains(d.go(60000)));
+      }
+    }finally{engine.close();}
+  }
+  @Test public void deadEngineFailsRatherThanWaitingIndefinitely()throws Exception{
+    Path exe=Files.createTempFile("uci-dead","");Files.write(exe,"#!/bin/sh\nexit 0\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));assertTrue(exe.toFile().setExecutable(true));
+    StockfishEngine engine=new StockfishEngine(exe.toString());long start=System.nanoTime();
+    try{engine.search(EnginePosition.from(new ChessGame()),BotDifficulty.NORMAL,60000);fail();}
+    catch(IOException expected){assertTrue(System.nanoTime()-start<java.util.concurrent.TimeUnit.SECONDS.toNanos(3));}
+    finally{engine.close();}
+  }
+  @Test public void closingEngineInterruptsHungHandshakeAndKillsProcessAndReader()throws Exception{
+    Path exe=Files.createTempFile("uci-hung","");Files.write(exe,"#!/bin/sh\nwhile IFS= read -r line; do :; done\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));assertTrue(exe.toFile().setExecutable(true));
+    StockfishEngine engine=new StockfishEngine(exe.toString());java.util.concurrent.ExecutorService executor=java.util.concurrent.Executors.newSingleThreadExecutor();
+    java.lang.reflect.Field field=StockfishEngine.class.getDeclaredField("process");field.setAccessible(true);
+    try{
+      java.util.concurrent.Future<String> request=executor.submit(()->engine.search(EnginePosition.from(new ChessGame()),BotDifficulty.NORMAL,60000));
+      long deadline=System.nanoTime()+java.util.concurrent.TimeUnit.SECONDS.toNanos(2);Process process;
+      do{process=(Process)field.get(engine);if(process==null)Thread.sleep(5);}while(process==null&&System.nanoTime()<deadline);
+      assertNotNull(process);engine.close();assertTrue(process.waitFor(2,java.util.concurrent.TimeUnit.SECONDS));
+      try{request.get(2,java.util.concurrent.TimeUnit.SECONDS);fail();}catch(java.util.concurrent.ExecutionException expected){}
+      java.lang.reflect.Field rf=StockfishEngine.class.getDeclaredField("reader");rf.setAccessible(true);Thread reader=(Thread)rf.get(engine);
+      reader.join(2000);assertFalse(reader.isAlive());
+    }finally{engine.close();executor.shutdownNow();}
+  }
+  @Test public void nonResponsiveEngineHasBoundedHandshake()throws Exception{
+    Path exe=Files.createTempFile("uci-timeout","");Files.write(exe,"#!/bin/sh\nwhile IFS= read -r line; do :; done\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));assertTrue(exe.toFile().setExecutable(true));
+    StockfishEngine engine=new StockfishEngine(exe.toString());long start=System.nanoTime();
+    try{engine.search(EnginePosition.from(new ChessGame()),BotDifficulty.NORMAL,60000);fail();}
+    catch(IOException expected){assertTrue(System.nanoTime()-start<java.util.concurrent.TimeUnit.SECONDS.toNanos(12));}
+    finally{engine.close();}
+  }
+
 }

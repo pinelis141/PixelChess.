@@ -25,7 +25,7 @@ jobs:
           gradle-version: '8.7'
 
       - name: Install pinned Android NDK
-        run: sdkmanager 'ndk;28.2.13676358'
+        run: '$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "ndk;28.2.13676358"'
 
       - name: Build official offline Stockfish and corresponding source
         run: tools/build_stockfish.sh
