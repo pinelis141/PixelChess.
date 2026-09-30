@@ -4,6 +4,7 @@ android { namespace 'com.pixelchess.app'; compileSdk 35
  defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 36; versionName '0.27.1' }
  signingConfigs { release { if (releaseSigningReady) { storeFile file(System.getenv('PIXELCHESS_KEYSTORE_PATH')); storePassword System.getenv('PIXELCHESS_STORE_PASSWORD'); keyAlias System.getenv('PIXELCHESS_KEY_ALIAS'); keyPassword System.getenv('PIXELCHESS_KEY_PASSWORD') } } }
  buildTypes { release { if (releaseSigningReady) signingConfig signingConfigs.release; minifyEnabled false } }
+ packaging { jniLibs { useLegacyPackaging true } }
  buildFeatures { buildConfig true }
  testOptions { unitTests.includeAndroidResources = true; unitTests.all { testLogging { showStandardStreams = true; exceptionFormat = "full" } } }
 }

@@ -1,6 +1,7 @@
 package com.pixelchess.app;
 
 import android.app.*;
+import com.pixelchess.app.bot.*;
 import android.os.*;
 import android.graphics.*;
 import android.graphics.drawable.*;
@@ -36,12 +37,19 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
   Button button(String s){ Button b=new Button(this); b.setText(s); b.setTextSize(18); b.setAllCaps(false); b.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return b; }
 
-  @Override protected void onResume(){super.onResume();foreground=true;menuMusic.setForeground(true);}
-  @Override protected void onPause(){foreground=false;menuMusic.setForeground(false);super.onPause();}
-  @Override protected void onDestroy(){matchConnection.cancel();if(connectionDialog!=null)connectionDialog.dismiss();menuMusic.release();chessSounds.release();super.onDestroy();}
+  @Override protected void onResume(){super.onResume();foreground=true;menuMusic.setForeground(true);if(game!=null&&game.botGame())game.resumeBot();}
+  @Override protected void onPause(){if(game!=null&&game.botGame()){game.settleBotClock();game.pauseBot();}foreground=false;menuMusic.setForeground(false);super.onPause();}
+  @Override protected void onDestroy(){if(game!=null)game.stopBot();matchConnection.cancel();if(connectionDialog!=null)connectionDialog.dismiss();menuMusic.release();chessSounds.release();super.onDestroy();}
   @Override protected void onSaveInstanceState(Bundle out){
     super.onSaveInstanceState(out);
     if(game==null||game.online())return;
+    game.settleBotClock();
+    out.putBoolean("bot_match",game.botGame());
+    if(game.botGame()){
+      out.putBoolean("bot_white",game.humanWhite());
+      out.putString("bot_difficulty",game.botDifficulty().name());
+      out.putLong("bot_saved_at",SystemClock.elapsedRealtime());
+    }
     out.putBoolean("local_match",true);
     out.putInt("local_minutes",selectedMinutes);
     out.putLong("local_white_ms",game.matchClock.whiteMs());
@@ -64,7 +72,17 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
       }
       selectedMinutes=minutes;mainMenuVisible=false;
       game=new ChessView(this,selectedTheme,minutes,false,true,this);
-      game.restore(restored,white,black);setContentView(game);
+      game.restore(restored,white,black);
+      if(state.getBoolean("bot_match",false)){
+        BotDifficulty difficulty=BotDifficulty.valueOf(state.getString("bot_difficulty",BotDifficulty.NORMAL.name()));
+        long elapsed=Math.max(0,SystemClock.elapsedRealtime()-state.getLong("bot_saved_at",SystemClock.elapsedRealtime()));
+        if(!restored.gameOver()){
+          if(restored.whiteTurn())white=Math.max(0,white-elapsed);else black=Math.max(0,black-elapsed);
+          game.matchClock.sync(white,black,SystemClock.elapsedRealtime());
+        }
+        game.configureBot(state.getBoolean("bot_white",true),difficulty,this::createEngine);
+      }
+      setContentView(game);
       return true;
     }catch(RuntimeException invalidState){return false;}
   }
@@ -73,11 +91,12 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
     super.setContentView(view);
   }
   void showMenu(){
-    if(matchConnection!=null)matchConnection.cancel();game=null;mainMenuVisible=true;
+    if(game!=null)game.stopBot();if(matchConnection!=null)matchConnection.cancel();game=null;mainMenuVisible=true;
     LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER); box.setPadding(40,40,40,40); box.setBackgroundColor(bg);
     TextView logo=title("♜  PIXEL CHESS  ♞",30); box.addView(logo,new LinearLayout.LayoutParams(-1,-2));
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
     Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
+    Button bot=button("▶ Jogar contra bot");bot.setOnClickListener(v->chooseBotDifficulty());box.addView(bot,new LinearLayout.LayoutParams(-1,-2));
     Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
     Button skin=button("▣ Skin: "+selectedTheme.name); skin.setOnClickListener(v->chooseSkin()); box.addView(skin,new LinearLayout.LayoutParams(-1,-2));
     Button settings=button("⚙ Configurações");settings.setOnClickListener(v->showSettings());box.addView(settings,new LinearLayout.LayoutParams(-1,-2));
@@ -130,6 +149,48 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
       selectedMinutes=i==0?10:i==1?5:3;
       if(online)connect(true,null);else{mainMenuVisible=false;game=new ChessView(this,selectedTheme,selectedMinutes,false,true,this);setContentView(game);}
     }).setNegativeButton("VOLTAR",null).show();
+  }
+  ChessEngine createEngine(){return new StockfishEngine(new File(getApplicationInfo().nativeLibraryDir,"libstockfish.so").getAbsolutePath());}
+  void chooseBotDifficulty(){
+    String[] labels=new String[BotDifficulty.values().length];
+    for(int i=0;i<labels.length;i++)labels[i]=BotDifficulty.values()[i].label;
+    new AlertDialog.Builder(this).setTitle("Dificuldade").setItems(labels,(d,i)->chooseBotColor(BotDifficulty.values()[i]))
+      .setNeutralButton("STOCKFISH / LICENÇA",(d,w)->showEngineLicense())
+      .setNegativeButton("VOLTAR",null).show();
+  }
+  void showEngineLicense(){
+    try{
+      StringBuilder text=new StringBuilder();
+      for(String name:new String[]{"NOTICE.txt","COPYING.txt","AUTHORS"}){
+        try(BufferedReader reader=new BufferedReader(new InputStreamReader(getAssets().open("stockfish/"+name),java.nio.charset.StandardCharsets.UTF_8))){
+          String line;while((line=reader.readLine())!=null)text.append(line).append('\n');
+        }
+        text.append('\n');
+      }
+      TextView content=title(text.toString(),12);content.setGravity(Gravity.START);content.setTextIsSelectable(true);content.setPadding(24,24,24,24);
+      content.setAutoLinkMask(android.text.util.Linkify.WEB_URLS);
+      ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(bg);scroll.addView(content);
+      new AlertDialog.Builder(this).setTitle("Stockfish 19 • GPL v3").setView(scroll).setPositiveButton("FECHAR",null).show();
+    }catch(IOException unavailable){toast("A licença não pôde ser aberta.");}
+  }
+  void chooseBotColor(BotDifficulty difficulty){
+    new AlertDialog.Builder(this).setTitle("Escolher cor").setItems(new String[]{"Brancas","Pretas","Aleatória"},(d,i)->{
+      boolean white=i==0||(i==2&&new java.security.SecureRandom().nextBoolean());
+      new AlertDialog.Builder(this).setTitle("Tempo por jogador").setItems(new String[]{"10 minutos","5 minutos","3 minutos"},(dialog,t)->{
+        selectedMinutes=t==0?10:t==1?5:3;startBotMatch(white,difficulty);
+      }).setNegativeButton("VOLTAR",null).show();
+    }).setNegativeButton("VOLTAR",null).show();
+  }
+  void startBotMatch(boolean white,BotDifficulty difficulty){
+    if(game!=null)game.stopBot();matchConnection.cancel();mainMenuVisible=false;
+    game=new ChessView(this,selectedTheme,selectedMinutes,false,white,this);
+    game.configureBot(white,difficulty,this::createEngine);setContentView(game);
+    toast("Você joga com as "+(white?"brancas":"pretas")+" • "+difficulty.label);
+  }
+  @Override public void botFailed(String message){
+    if(isFinishing()||isDestroyed())return;
+    new AlertDialog.Builder(this).setTitle("Motor indisponível").setMessage(message)
+      .setPositiveButton("VOLTAR AO MENU",(d,w)->showMenu()).setCancelable(false).show();
   }
   void bluetoothMenu(){
     if(!btPermission())return;BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();

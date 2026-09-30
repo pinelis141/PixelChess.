@@ -6,3 +6,4 @@ build/
 *.iml
 *.jks
 *.keystore
+app/src/main/jniLibs/

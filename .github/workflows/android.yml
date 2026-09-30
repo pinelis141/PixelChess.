@@ -24,6 +24,12 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Install pinned Android NDK
+        run: sdkmanager 'ndk;28.2.13676358'
+
+      - name: Build official offline Stockfish and corresponding source
+        run: tools/build_stockfish.sh
+
       - name: Configure release signing when repository secrets are available
         env:
           KEYSTORE_BASE64: ${{ secrets.PIXELCHESS_KEYSTORE_BASE64 }}
@@ -68,3 +74,8 @@ jobs:
         with:
           name: PixelChess-0.27.1-release-aab
           path: app/build/outputs/bundle/release/*.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Stockfish-19-corresponding-source
+          path: build/stockfish-distribution/*

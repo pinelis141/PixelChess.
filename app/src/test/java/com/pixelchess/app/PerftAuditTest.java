@@ -78,6 +78,7 @@ public class PerftAuditTest {
     assertEquals(20,perft(g,1));
     assertEquals(400,perft(g,2));
     assertEquals(8902,perft(g,3));
+    assertEquals(197281,perft(g,4));
   }
 
   @Test public void kiwipeteLegalMoveCountMatchesReference()throws Exception{
