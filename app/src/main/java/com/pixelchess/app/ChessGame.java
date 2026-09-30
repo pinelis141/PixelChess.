@@ -70,6 +70,15 @@ public final class ChessGame {
     return piece!=null&&Character.isUpperCase(piece.charAt(0));
   }
 
+  public boolean canPossiblyMate(boolean side){
+    for(int r=0;r<8;r++)for(int c=0;c<8;c++){
+      String piece=board[r][c];
+      if(piece!=null&&isWhitePiece(piece)==side&&Character.toLowerCase(piece.charAt(0))!='k')return true;
+    }
+    return false;
+  }
+
+
   public boolean isLegal(int r1,int c1,int r2,int c2){
     String q=pieceAt(r1,c1);
     if(q==null||!pseudo(r1,c1,r2,c2))return false;
@@ -97,9 +106,9 @@ public final class ChessGame {
     String source=pieceAt(r1,c1);
     if(gameOver||source==null||isWhitePiece(source)!=whiteTurn||!isLegal(r1,c1,r2,c2))return false;
     boolean promotes=source.equalsIgnoreCase("p")&&(r2==0||r2==7);
-    String chosen=promotion==null||promotion.equals("-")?"Q":promotion.toUpperCase(java.util.Locale.ROOT);
+    String chosen=promotion==null?"-":promotion.toUpperCase(java.util.Locale.ROOT);
     if(promotes&&(chosen.length()!=1||"QRBN".indexOf(chosen.charAt(0))<0))return false;
-    if(!promotes&&promotion!=null&&!promotion.equals("-"))return false;
+    if(!promotes&&!chosen.equals("-"))return false;
 
     String q=board[r1][c1];
     boolean side=isWhitePiece(q);

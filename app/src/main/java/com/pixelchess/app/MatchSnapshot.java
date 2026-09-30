@@ -28,7 +28,11 @@ final class MatchSnapshot {
   }
   ChessGame restore(){
     ChessGame g=ChessGame.replay(transcript);
-    if(!g.gameOver()&&(whiteMs==0||blackMs==0))g.finish("TEMPO • "+(whiteMs==0?"PRETAS":"BRANCAS")+" VENCEM");
+    if(!g.gameOver()&&(whiteMs==0||blackMs==0)){
+      boolean loserWhite=whiteMs==0,winnerWhite=!loserWhite;
+      if(g.canPossiblyMate(winnerWhite))g.finish("TEMPO • "+(loserWhite?"PRETAS":"BRANCAS")+" VENCEM");
+      else g.finish("EMPATE • TEMPO SEM MATERIAL PARA MATE");
+    }
     return g;
   }
 }

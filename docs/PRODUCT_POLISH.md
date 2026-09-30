@@ -1,7 +1,11 @@
-# Produto — 0.27.0
+# Produto — 0.27.1
 
 ## Arquitetura e UX
 
+- Auditoria 0.27.1: promoção exige escolha explícita de Dama/Torre/Bispo/Cavalo; o motor não promove mais silenciosamente para dama quando recebe "-".
+- Queda de Bluetooth após um resultado terminal mantém a opção de reconectar, permitindo que o aparelho que não recebeu o último estado reconcilie o resultado.
+- Timeout contra adversário com apenas o rei resulta em empate por impossibilidade de mate; a mesma regra é preservada na reconstrução por snapshot.
+- Partidas locais sobrevivem à recriação normal da Activity, preservando transcript, relógios, tempo selecionado e resultado terminal.
 - Hardening 0.27.0: o relógio da partida usa tempo monotônico do Android, sem depender de alterações no relógio civil do aparelho.
 - Timeout agora encerra a UI de forma atômica: limpa seleção, animação pendente e diálogo de promoção antes de mostrar o resultado.
 - Captura en passant é identificada como captura também no renderer e recebe o mesmo marcador visual das demais capturas.
