@@ -26,7 +26,12 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   int selectedMinutes=10;
   BoardTheme selectedTheme=BoardThemes.CLASSIC;
   ThemePreferences themePreferences;
-  @Override public void onCreate(Bundle b){super.onCreate(b);matchConnection=new BluetoothMatchController(this); menuMusic=new MenuMusicController(this);gamePreferences=new GamePreferences(this);chessSounds=new ChessSounds(this);setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC); themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE)); selectedTheme=themePreferences.load(); showMenu();}
+  @Override public void onCreate(Bundle b){
+    super.onCreate(b);
+    matchConnection=new BluetoothMatchController(this);menuMusic=new MenuMusicController(this);gamePreferences=new GamePreferences(this);chessSounds=new ChessSounds(this);
+    setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE));selectedTheme=themePreferences.load();
+    if(!restoreLocalMatch(b))showMenu();
+  }
 
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
   Button button(String s){ Button b=new Button(this); b.setText(s); b.setTextSize(18); b.setAllCaps(false); b.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return b; }
@@ -34,6 +39,35 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   @Override protected void onResume(){super.onResume();foreground=true;menuMusic.setForeground(true);}
   @Override protected void onPause(){foreground=false;menuMusic.setForeground(false);super.onPause();}
   @Override protected void onDestroy(){matchConnection.cancel();if(connectionDialog!=null)connectionDialog.dismiss();menuMusic.release();chessSounds.release();super.onDestroy();}
+  @Override protected void onSaveInstanceState(Bundle out){
+    super.onSaveInstanceState(out);
+    if(game==null||game.online())return;
+    out.putBoolean("local_match",true);
+    out.putInt("local_minutes",selectedMinutes);
+    out.putLong("local_white_ms",game.matchClock.whiteMs());
+    out.putLong("local_black_ms",game.matchClock.blackMs());
+    out.putString("local_transcript",game.gameState.transcript());
+    out.putBoolean("local_terminal",game.gameState.gameOver());
+    out.putString("local_status",game.gameState.status());
+  }
+  boolean restoreLocalMatch(Bundle state){
+    if(state==null||!state.getBoolean("local_match",false))return false;
+    try{
+      int minutes=state.getInt("local_minutes",10);
+      long white=state.getLong("local_white_ms",-1),black=state.getLong("local_black_ms",-1);
+      if(minutes<1||minutes>180||white<0||black<0||white>minutes*60000L||black>minutes*60000L)return false;
+      ChessGame restored=ChessGame.replay(state.getString("local_transcript","-"));
+      if(state.getBoolean("local_terminal",false)&&!restored.gameOver()){
+        String terminal=state.getString("local_status","");
+        if(terminal.isEmpty())return false;
+        restored.finish(terminal);
+      }
+      selectedMinutes=minutes;mainMenuVisible=false;
+      game=new ChessView(this,selectedTheme,minutes,false,true,this);
+      game.restore(restored,white,black);setContentView(game);
+      return true;
+    }catch(RuntimeException invalidState){return false;}
+  }
   @Override public void setContentView(View view){
     if(menuMusic!=null)menuMusic.setMenuVisible(false);
     super.setContentView(view);
@@ -153,12 +187,6 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
     if(connectionDialog!=null){connectionDialog.dismiss();connectionDialog=null;}
     boolean onlineGame=game!=null&&game.online();
     if(onlineGame)game.applyConnectionLost();
-    if(onlineGame&&game.gameState.gameOver()){
-      new AlertDialog.Builder(this).setTitle("Partida encerrada")
-        .setMessage(game.gameState.status()+"\n\n"+reason)
-        .setPositiveButton("VOLTAR AO MENU",(d,w)->showMenu()).setCancelable(false).show();
-      return;
-    }
     boolean resume=onlineGame;
     new AlertDialog.Builder(this).setTitle(resume?"Partida pausada":"Não foi possível conectar")
       .setMessage(reason+(resume?"\n\nO tabuleiro foi mantido e os relógios estão pausados. Toquem em reconectar nos dois aparelhos.":""))
