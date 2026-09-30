@@ -44,6 +44,15 @@ public class BluetoothGameProtocolTest {
     assertEquals(8,flag.sequence);
   }
 
+  @Test public void rejectCarriesAuthoritativeSnapshot(){
+    BluetoothGameProtocol.Reject reject=(BluetoothGameProtocol.Reject)BluetoothGameProtocol.parse(
+      BluetoothGameProtocol.reject(321,654,true,11));
+    assertEquals(321,reject.whiteMs);
+    assertEquals(654,reject.blackMs);
+    assertTrue(reject.whiteTurn);
+    assertEquals(11,reject.sequence);
+  }
+
   @Test public void malformedMessageIsIgnored(){
     assertNull(BluetoothGameProtocol.parse("MOVE,broken"));
     assertNull(BluetoothGameProtocol.parse("UNKNOWN,1"));
