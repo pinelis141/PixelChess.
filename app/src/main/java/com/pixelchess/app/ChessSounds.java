@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** Activity-owned, preloaded stone impacts. No tone generator, loops or runtime synthesis. */
 final class ChessSounds {
+  // Shared by every cue, side and game mode; device media volume still applies.
+  static final float PLAYBACK_VOLUME=.65f;
   interface Player { void play(int resource); void stop(); void release(); }
   private Player player;
   private boolean foreground=true,released;
@@ -57,7 +59,7 @@ final class ChessSounds {
       // Never queue a stale move if loading failed or has not finished.
       if(sample==null||sample==0||!ready.contains(sample))return;
       stop();
-      stream=pool.play(sample,.65f,.65f,1,0,1f);
+      stream=pool.play(sample,PLAYBACK_VOLUME,PLAYBACK_VOLUME,1,0,1f);
     }
     public void stop(){if(!closed&&stream!=0){pool.stop(stream);stream=0;}}
     public void release(){

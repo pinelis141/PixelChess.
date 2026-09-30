@@ -1,0 +1,8 @@
+Piece audio: chess_move_on_alabaster.wav by mh2o (2016-08-05).
+Source: https://freesound.org/people/mh2o/sounds/351518/
+CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/
+Public preview: https://cdn.freesound.org/previews/351/351518_4502687-hq.mp3
+Preview SHA-256: c13803890bd531fee08b167e780b0a7bab2c4e21b1b232366b8df3860792b25b
+Changes: mono PCM conversion, DC removal, edge fades, common peak normalization,
+silence padding; terminal cue repeats the same recorded hit twice.
+No endorsement by the author is implied. PixelChess licensing is unchanged.

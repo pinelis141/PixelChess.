@@ -22,7 +22,7 @@ public class StoneAudioTest {
   void create(ChessGame game){view=new ChessView(context,BoardThemes.CLASSIC,5,false,true,actions);view.restore(game,300000,300000);}
   @Test public void realAssetsHaveSafePcmLevelsAndBoundedDuration()throws Exception{
     int[] resources={R.raw.stone_move,R.raw.stone_capture,R.raw.stone_terminal};
-    int[] expectedSamples={7056,9702,15876};
+    int[] expectedSamples={4410,4410,12348};
     for(int k=0;k<resources.length;k++){
       byte[] bytes;
       try(InputStream in=context.getResources().openRawResource(resources[k]);ByteArrayOutputStream out=new ByteArrayOutputStream()){
@@ -39,6 +39,26 @@ public class StoneAudioTest {
       assertTrue(peak>1000);assertTrue(peak<19000);assertTrue(energy>1000000);
       assertEquals(0,data.getShort(bytes.length-2));
     }
+  }
+  byte[] asset(int resource)throws IOException{
+    try(InputStream in=context.getResources().openRawResource(resource);ByteArrayOutputStream out=new ByteArrayOutputStream()){
+      byte[] block=new byte[4096];int n;while((n=in.read(block))!=-1)out.write(block,0,n);return out.toByteArray();
+    }
+  }
+  @Test public void allCuesUseIdenticalRecordedHitAndGain()throws Exception{
+    byte[] move=asset(R.raw.stone_move),capture=asset(R.raw.stone_capture),terminal=asset(R.raw.stone_terminal);
+    assertArrayEquals(move,capture);
+    byte[] hit=java.util.Arrays.copyOfRange(move,44,move.length);
+    assertArrayEquals(hit,java.util.Arrays.copyOfRange(terminal,44,44+hit.length));
+    int second=44+hit.length+3528*2;
+    for(int i=44+hit.length;i<second;i++)assertEquals(0,terminal[i]);
+    assertArrayEquals(hit,java.util.Arrays.copyOfRange(terminal,second,terminal.length));
+    assertEquals(.65f,ChessSounds.PLAYBACK_VOLUME,0f);
+  }
+  @Test public void whiteAndBlackMovesUseSameCue(){
+    create(new ChessGame());
+    assertTrue(view.move(6,4,4,4,"-"));assertEquals(1,actions.plays);assertFalse(actions.capture);assertFalse(actions.terminal);
+    assertTrue(view.move(1,4,3,4,"-"));assertEquals(2,actions.plays);assertFalse(actions.capture);assertFalse(actions.terminal);
   }
   @Test public void onlySuccessfulUnmutedMovesPlay(){
     create(new ChessGame());assertFalse(view.move(6,4,3,4,"-"));assertEquals(0,actions.plays);
