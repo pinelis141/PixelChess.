@@ -13,7 +13,10 @@ public class PerftAuditTest {
     for(int r1=0;r1<8;r1++)for(int c1=0;c1<8;c1++){
       String p=g.pieceAt(r1,c1);
       if(p==null||ChessGame.isWhitePiece(p)!=g.whiteTurn())continue;
-      for(int r2=0;r2<8;r2++)for(int c2=0;c2<8;c2++)if(g.isLegal(r1,c1,r2,c2))count++;
+      for(int r2=0;r2<8;r2++)for(int c2=0;c2<8;c2++)if(g.isLegal(r1,c1,r2,c2)){
+        boolean promotion=Character.toLowerCase(p.charAt(0))=='p'&&(r2==0||r2==7);
+        count+=promotion?4:1;
+      }
     }
     return count;
   }
