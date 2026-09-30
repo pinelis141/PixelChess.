@@ -53,7 +53,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PixelChess-0.24.0-release-apk-aab
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+          name: PixelChess-0.25.0-release-apk
+          path: app/build/outputs/apk/release/*.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PixelChess-0.25.0-release-aab
+          path: app/build/outputs/bundle/release/*.aab

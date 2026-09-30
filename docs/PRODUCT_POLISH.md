@@ -1,19 +1,28 @@
-# UX, testes e distribuição
+# Produto — 0.25.0
 
-## Pronto nesta etapa
+## Arquitetura e UX
 
-- O seletor de skins agora tem estado visual e descrição acessível para temas bloqueados; temas bloqueados não recebem clique de seleção. O catálogo atual continua mostrando apenas temas disponíveis.
-- Configurações persistentes para vibração, efeitos de tema, posição das pretas embaixo e sons curtos de jogadas. Sons começam desligados.
-- Movimento de peça usa arco curto, easing e um anel de captura. Seleção realçada e linhas de estado/histórico ajustadas à largura disponível.
-- Falhas de criação/entrada Bluetooth oferecem nova tentativa e retorno claro ao menu. A perda durante jogo termina a sessão; não há serialização/resumo do estado para retomar ainda.
-- CI testa dimensões 8×8 dos tabuleiros registrados, transparência central das molduras, regras especiais, seletor e movimento; gera APK debug, APK release sem assinatura e AAB sem assinatura.
-- Ícone vetorial inicial e versionamento 0.24.0 / code 27.
+- `ChessView` agora é uma classe independente. Recebe tema, tempo, lado e a interface `Actions`; não referencia `MainActivity` nem abre sockets.
+- `BluetoothMatchController` controla tentativas, cancelamento, handshake, timeout, envio e descarte de mensagens de sessões antigas. `BluetoothManager` mantém apenas o transporte.
+- `ChessGame` continua puro; valida a cor do turno e a promoção antes de modificar o estado. A chave de repetição só considera en passant quando há captura legal e os direitos efetivos de roque.
+- Configurações, ícone inicial, música, sons opcionais e os temas aprovados continuam disponíveis. A orientação do jogador é mantida após perda da conexão.
 
-## Limites restantes
+## Retomada Bluetooth
 
-- `MainActivity` ainda contém a coordenação de tela e a classe `ChessView`; extração completa para `ChessView` independente precisa ser uma mudança arquitetural própria.
-- Reconexão Bluetooth ainda requer ação manual e uma nova partida. Retomada exige protocolo versionado para salvar, validar e sincronizar tabuleiro, direitos de roque, en passant, histórico, relógios e autoridade.
-- Testes automatizados agora incluem roque, en passant, promoção e repetição tripla, além do mate. Afogamento, xeque-mate por casos adicionais, regra de 50 lances e material insuficiente pedem posições de teste configuráveis; isso ainda não foi adicionado ao motor.
-- Os pacotes release são unsigned. Para distribuir/instalar como atualização é necessário configurar uma keystore da equipe e as credenciais em GitHub Actions Secrets; nenhuma chave privada deve ir para o repositório.
-- Música do menu e efeitos de jogada precisam de validação auditiva em aparelho físico; CI só verifica compilação e lógica do ciclo de vida.
-- O ícone atual é uma base vetorial simples e ainda pede aprovação visual antes de uma publicação.
+Os dois aparelhos devem usar 0.25.0 ou posterior compatível (protocolo 3).
+Ao detectar a interrupção, cada aparelho mantém a partida e pausa o relógio local.
+O usuário toca em **Reconectar** nos dois aparelhos. O anfitrião volta a aguardar; o convidado tenta o mesmo aparelho pareado.
+
+O handshake confere a versão e o identificador da partida. O anfitrião envia o histórico completo de jogadas e seus dois relógios. O convidado reproduz e valida cada jogada em uma nova instância do motor antes de aceitar o estado. Isso restaura direitos de roque, en passant, promoções, repetição, contador de 50 lances, histórico e resultados por regras/tempo. O estado anterior só é substituído depois da confirmação; relógios recomeçam a partir do checkpoint, sem cobrar o período desconectado. Tentativas têm limite de 60 segundos e podem ser canceladas.
+
+Limites: retomada em memória enquanto a partida continua aberta nos dois aplicativos; voltar ao menu, fechar o aplicativo ou encerramento do processo descarta essa sessão. Pareamento ainda usa a configuração do Android, agora acessível pelo menu do jogo. Não há descoberta automática de novos aparelhos. A latência entre a queda física e sua detecção ainda depende do Bluetooth do Android.
+
+## Regressão
+
+Testes cobrem afogamento versus mate, limite de 100 meios-lances e reinício do contador por captura/peão, material insuficiente, roque, en passant, promoção, turno incorreto, repetição com en passant irrelevante, retomada por replay e rejeição de partidas/protocolos diferentes. Testes da View conferem pausa, restauração dos relógios e divergência de turnos.
+
+A CI verifica os assets-base da Floresta, executa a suíte Android e gera APK debug, APK release e AAB. Os dois pacotes release são artefatos separados. Na ausência dos quatro segredos de assinatura, são **sem assinatura**. Ícone e áudio ainda exigem aprovação no aparelho; retomada deve ser ensaiada com dois celulares físicos antes de distribuir.
+
+## Assinatura
+
+Segredos opcionais de GitHub Actions: `PIXELCHESS_KEYSTORE_BASE64`, `PIXELCHESS_STORE_PASSWORD`, `PIXELCHESS_KEY_ALIAS` e `PIXELCHESS_KEY_PASSWORD`. Nenhuma chave privada é guardada no repositório.

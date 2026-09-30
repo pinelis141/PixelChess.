@@ -2,7 +2,7 @@ package com.pixelchess.app;
 
 /** Versioned Bluetooth wire format. The host is the only authority for board state and clocks. */
 public final class BluetoothGameProtocol {
-  public static final int VERSION=2;
+  public static final int VERSION=3;
   private BluetoothGameProtocol(){}
 
   public interface Message {}
@@ -70,24 +70,25 @@ public final class BluetoothGameProtocol {
     return "REJECT,"+whiteMs+","+blackMs+","+(whiteTurn?"W":"B")+","+sequence;
   }
 
+  private static int square(String value){int x=Integer.parseInt(value);if(x<0||x>7)throw new IllegalArgumentException();return x;}
+  private static boolean side(String value){if(!value.equals("W")&&!value.equals("B"))throw new IllegalArgumentException();return value.equals("W");}
+  private static long clock(String value){long x=Long.parseLong(value);if(x<0||x>10800000)throw new IllegalArgumentException();return x;}
+  private static long sequence(String value){long x=Long.parseLong(value);if(x<1)throw new IllegalArgumentException();return x;}
+  private static String promotion(String value){if(!value.matches("[-QRBNqrbn]"))throw new IllegalArgumentException();return value;}
   public static Message parse(String line){
-    if(line==null)return null;
-    String[] a=line.split(",");
+    if(line==null||line.length()>256)return null;
+    String[] a=line.split(",",-1);
     try{
-      if("TIME".equals(a[0])&&(a.length==2||a.length==3))
-        return new Time(Integer.parseInt(a[1]),a.length>=3?Integer.parseInt(a[2]):1);
-      if(a.length>=6&&"PLAY".equals(a[0]))
-        return new Play(Integer.parseInt(a[1]),Integer.parseInt(a[2]),Integer.parseInt(a[3]),Integer.parseInt(a[4]),a[5]);
-      if(a.length>=10&&"MOVE".equals(a[0]))
-        return new Move(Integer.parseInt(a[1]),Integer.parseInt(a[2]),Integer.parseInt(a[3]),Integer.parseInt(a[4]),
-          a[5],Long.parseLong(a[6]),Long.parseLong(a[7]),"W".equals(a[8]),Long.parseLong(a[9]));
-      if(a.length>=5&&"SYNC".equals(a[0]))
-        return new Sync(Long.parseLong(a[1]),Long.parseLong(a[2]),"W".equals(a[3]),Long.parseLong(a[4]));
-      if(a.length>=3&&"FLAG".equals(a[0]))
-        return new Flag("W".equals(a[1]),Long.parseLong(a[2]));
-      if(a.length>=5&&"REJECT".equals(a[0]))
-        return new Reject(Long.parseLong(a[1]),Long.parseLong(a[2]),"W".equals(a[3]),Long.parseLong(a[4]));
-    }catch(NumberFormatException|ArrayIndexOutOfBoundsException ignored){}
+      if("TIME".equals(a[0])&&(a.length==2||a.length==3)){
+        int minutes=Integer.parseInt(a[1]);if(minutes<1||minutes>180)return null;
+        return new Time(minutes,a.length==3?Integer.parseInt(a[2]):1);
+      }
+      if(a.length==6&&"PLAY".equals(a[0]))return new Play(square(a[1]),square(a[2]),square(a[3]),square(a[4]),promotion(a[5]));
+      if(a.length==10&&"MOVE".equals(a[0]))return new Move(square(a[1]),square(a[2]),square(a[3]),square(a[4]),promotion(a[5]),clock(a[6]),clock(a[7]),side(a[8]),sequence(a[9]));
+      if(a.length==5&&"SYNC".equals(a[0]))return new Sync(clock(a[1]),clock(a[2]),side(a[3]),sequence(a[4]));
+      if(a.length==3&&"FLAG".equals(a[0]))return new Flag(side(a[1]),sequence(a[2]));
+      if(a.length==5&&"REJECT".equals(a[0]))return new Reject(clock(a[1]),clock(a[2]),side(a[3]),sequence(a[4]));
+    }catch(IllegalArgumentException|ArrayIndexOutOfBoundsException ignored){}
     return null;
   }
 }

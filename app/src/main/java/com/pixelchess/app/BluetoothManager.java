@@ -17,8 +17,9 @@ import java.util.concurrent.Executors;
 /** Owns Bluetooth sockets and byte transport. Game protocol/state live elsewhere. */
 public final class BluetoothManager {
   private BluetoothAdapter adapter;
-  private BluetoothSocket socket;
-  private BluetoothServerSocket serverSocket;
+  private volatile BluetoothSocket socket;
+  private volatile BluetoothServerSocket serverSocket;
+  private volatile boolean closed;
   private OutputStream out;
   private final Object writeLock=new Object();
   private final ExecutorService writer=Executors.newSingleThreadExecutor();
@@ -35,9 +36,11 @@ public final class BluetoothManager {
   public void hostAndAccept(String serviceName,UUID uuid)throws IOException {
     requireAdapter();
     serverSocket=adapter.listenUsingRfcommWithServiceRecord(serviceName,uuid);
+    if(closed){serverSocket.close();throw new IOException("Conexão cancelada");}
     socket=serverSocket.accept();
     serverSocket.close();
     serverSocket=null;
+    if(closed){socket.close();throw new IOException("Conexão cancelada");}
     synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
   }
 
@@ -45,7 +48,9 @@ public final class BluetoothManager {
     requireAdapter();
     socket=device.createRfcommSocketToServiceRecord(uuid);
     adapter.cancelDiscovery();
+    if(closed){socket.close();throw new IOException("Conexão cancelada");}
     socket.connect();
+    if(closed){socket.close();throw new IOException("Conexão cancelada");}
     synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
   }
 
@@ -79,11 +84,14 @@ public final class BluetoothManager {
   }
 
   public void close(){
-    synchronized(writeLock){sessionGeneration++;out=null;}
+    closed=true;
     try{if(serverSocket!=null)serverSocket.close();}catch(Exception ignored){}
     try{if(socket!=null)socket.close();}catch(Exception ignored){}
+    synchronized(writeLock){sessionGeneration++;out=null;}
     serverSocket=null;socket=null;
   }
+
+  void dispose(){close();writer.shutdownNow();}
 
   private void requireAdapter()throws IOException {
     if(adapter==null)throw new IOException("Bluetooth indisponível");
