@@ -1,6 +1,9 @@
 plugins { id 'com.android.application' }
+def releaseSigningReady = ['PIXELCHESS_KEYSTORE_PATH','PIXELCHESS_STORE_PASSWORD','PIXELCHESS_KEY_ALIAS','PIXELCHESS_KEY_PASSWORD'].every { System.getenv(it) }
 android { namespace 'com.pixelchess.app'; compileSdk 35
- defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 26; versionName '0.23.0' }
+ defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 27; versionName '0.24.0' }
+ signingConfigs { release { if (releaseSigningReady) { storeFile file(System.getenv('PIXELCHESS_KEYSTORE_PATH')); storePassword System.getenv('PIXELCHESS_STORE_PASSWORD'); keyAlias System.getenv('PIXELCHESS_KEY_ALIAS'); keyPassword System.getenv('PIXELCHESS_KEY_PASSWORD') } } }
+ buildTypes { release { if (releaseSigningReady) signingConfig signingConfigs.release; minifyEnabled false } }
  buildFeatures { buildConfig true }
  testOptions { unitTests.all { testLogging.showStandardStreams = true } }
 }
@@ -9,4 +12,3 @@ dependencies {
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.robolectric:robolectric:4.14.1'
 }
-

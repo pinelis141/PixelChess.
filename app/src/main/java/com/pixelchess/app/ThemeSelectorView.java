@@ -92,13 +92,14 @@ public final class ThemeSelectorView extends ScrollView {
     TextView name=text(context,theme.name,18,cream,true);
     copy.addView(name,new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT));
 
-    TextView state=text(context,selected?"✓  SELECIONADO":"TOQUE PARA USAR",12,selected?gold:Color.rgb(145,151,151),true);
+    TextView state=text(context,theme.locked?"🔒  BLOQUEADO":selected?"✓  SELECIONADO":"TOQUE PARA USAR",12,selected?gold:Color.rgb(145,151,151),true);
     LinearLayout.LayoutParams stateLp=new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT);
     stateLp.setMargins(0,(int)(8*d),0,0);
     copy.addView(state,stateLp);
 
     card.addView(copy,new LinearLayout.LayoutParams(0,LayoutParams.WRAP_CONTENT,1f));
-    card.setOnClickListener(v->listener.onThemeSelected(theme));
+    if(theme.locked){card.setAlpha(.58f);card.setContentDescription(theme.name+", bloqueado");}
+    else card.setOnClickListener(v->listener.onThemeSelected(theme));
     return card;
   }
 

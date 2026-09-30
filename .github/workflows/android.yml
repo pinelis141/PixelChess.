@@ -2,7 +2,7 @@ name: Build Android APK
 on:
   workflow_dispatch:
   push:
-    branches: [ main, feature/forest-skin-test, feature/forest-theme-foundation, refactor/theme-system, feature/castle-medieval, feature/volcanic-forge, integration/themes-stable, feature/theme-selector, refactor/core-engine, fix/authoritative-bluetooth-clock, feature/menu-audio-current ]
+    branches: [ main, feature/forest-skin-test, feature/forest-theme-foundation, refactor/theme-system, feature/castle-medieval, feature/volcanic-forge, integration/themes-stable, feature/theme-selector, refactor/core-engine, fix/authoritative-bluetooth-clock, feature/menu-audio-current, feature/product-polish-backlog ]
 
 jobs:
   build:
@@ -19,14 +19,41 @@ jobs:
         with:
           gradle-version: '8.7'
 
+      - name: Configure release signing when repository secrets are available
+        env:
+          KEYSTORE_BASE64: ${{ secrets.PIXELCHESS_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.PIXELCHESS_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.PIXELCHESS_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.PIXELCHESS_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ] && [ -n "$STORE_PASSWORD" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASSWORD" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/pixelchess-release.jks"
+            echo "PIXELCHESS_KEYSTORE_PATH=$RUNNER_TEMP/pixelchess-release.jks" >> "$GITHUB_ENV"
+            echo "PIXELCHESS_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+            echo "PIXELCHESS_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+            echo "PIXELCHESS_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+            echo "Release signing secrets configured."
+          else
+            echo "Release signing secrets unavailable; building unsigned release packages."
+          fi
+
       - name: Verify approved Forest assets
         run: python3 tools/verify_forest_assets.py
 
-      - name: Build debug APK
-        run: gradle :app:testDebugUnitTest :app:assembleDebug
+      - name: Verify board asset layout
+        run: gradle :app:testDebugUnitTest
+
+      - name: Build debug and release packages
+        run: gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
       - uses: actions/upload-artifact@v4
         with:
           name: PixelChess-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
 
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PixelChess-0.24.0-release-apk-aab
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
