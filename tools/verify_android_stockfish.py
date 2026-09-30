@@ -57,7 +57,7 @@ try:
     send('isready')
     until('readyok')
     # The same five settings as BotDifficulty, exercising real native option transitions.
-    for skill, elo, depth, nodes, ms in [(0, 0, 1, 500, 150), (20, 1320, 8, 20000, 350),
+    for skill, elo, depth, nodes, ms in [(0, 0, 1, 500, 150), (4, 0, 6, 10000, 350),
                                        (20, 1800, 14, 100000, 700), (20, 2400, 20, 500000, 1500),
                                        (20, 0, 64, 2000000, 2500)]:
         send('setoption name UCI_LimitStrength value ' + ('true' if elo else 'false'))

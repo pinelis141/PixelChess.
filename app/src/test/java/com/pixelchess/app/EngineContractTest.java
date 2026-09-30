@@ -30,7 +30,7 @@ public class EngineContractTest {
     for(BotDifficulty d:BotDifficulty.values()){
       configs.add(d.skill+":"+d.elo+":"+d.go(60000));assertTrue(d.budget(60000)<=2500);assertEquals(1,d.budget(0));assertTrue(d.budget(100)<=5);
     }
-    assertEquals(5,configs.size());assertEquals(0,BotDifficulty.EASY.skill);assertEquals(0,BotDifficulty.MAXIMUM.elo);assertEquals(20,BotDifficulty.MAXIMUM.skill);
+    assertEquals(5,configs.size());assertEquals(0,BotDifficulty.EASY.skill);assertEquals(4,BotDifficulty.NORMAL.skill);assertEquals(0,BotDifficulty.NORMAL.elo);assertEquals(0,BotDifficulty.MAXIMUM.elo);assertEquals(20,BotDifficulty.MAXIMUM.skill);
   }
   @Test public void realProcessTransportHandshakeStrengthAndTeardown()throws Exception{
     Path dir=Files.createTempDirectory("uci-test");Path exe=dir.resolve("engine"),commands=dir.resolve("commands");

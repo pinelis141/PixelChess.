@@ -66,14 +66,14 @@ and clean process teardown. Physical smartphone playtesting is still needed befo
 
 ## Difficulty
 
-All levels: Threads=1, Hash=32 MB, Ponder=false, UCI_Chess960=false. No artificial delays.
+All levels: Threads=1, Hash=32 MB, Ponder=false, UCI_Chess960=false. Strength is determined by native engine settings, not presentation delays.
 Search ends when ANY depth, node or movetime limit is reached. Actual movetime is the smaller
 of the table limit and remaining clock / 20, clamped to at least 1 ms.
 
 | Level | UCI_LimitStrength | UCI_Elo | Skill Level | Depth cap | Node cap | Movetime cap |
 |---|---|---|---|---|---|---|
 | Fácil | false | unused | 0 | 1 | 500 | 150 ms |
-| Normal | true | 1320 | 20 (overridden) | 8 | 20,000 | 350 ms |
+| Normal | false | unused | 4 | 6 | 10,000 | 350 ms |
 | Difícil | true | 1800 | 20 (overridden) | 14 | 100,000 | 700 ms |
 | Especialista | true | 2400 | 20 (overridden) | 20 | 500,000 | 1,500 ms |
 | Máximo | false | unused | 20 | 64 | 2,000,000 | 2,500 ms |
@@ -81,8 +81,30 @@ of the table limit and remaining clock / 20, clamped to at least 1 ms.
 Official Stockfish 19 UCI_Elo range is 1320..3190. LimitStrength overrides Skill Level.
 The Easy setting instead uses native skill reduction and one-ply search to be markedly weaker;
 it does not claim a measured beginner Elo. Playtesting is still needed to confirm beginner fit.
+Normal uses native Skill Level 4 and a smaller depth/node budget to soften the jump from Easy.
 The other Elo values are strength targets, not ratings calibrated for these mobile time/node caps.
 Maximum enables full strength within a single-thread bounded smartphone resource budget.
+
+## Move pacing (2026-09-30 phone feedback)
+
+An immediate engine reply previously replaced the human's still-running move animation.
+Bot turns now have a 2,000 ms minimum presentation window measured from request start.
+Calculation proceeds immediately on the worker; a fast validated result waits on a cancellable
+main-Handler callback, without sleeping the UI or burning CPU. A slower calculation is applied
+as soon as it finishes; 2 seconds is not added to its search time. This presentation window is
+identical for all five levels and does not pretend to alter playing strength.
+
+The existing monotonic clock continues to charge the bot throughout that window. It is capped
+at one quarter of its remaining clock to avoid forcing a time loss through presentation alone.
+The normal move path checks timeout again before applying the delayed move. Stop, pause, timeout,
+failure and recreation cancel pending callbacks; repeated requests cannot launch a second search
+while a result is waiting. Bot animations last 500 ms, or 650 ms for the knight. Human input in bot
+matches waits until the current animation finishes so another move cannot overwrite it. The clock
+switches at the logical move as before; animation is not a clock pause. Human and Local/Bluetooth
+animation durations remain 220 ms / 360 ms. No clock balancing or fictitious time deductions.
+
+These settings are initial tuning from device feedback, not measured Elo calibration. Beginner
+strength and pacing still need another phone playtest.
 
 ## License and distribution decision
 

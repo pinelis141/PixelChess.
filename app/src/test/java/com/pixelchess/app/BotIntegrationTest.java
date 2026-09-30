@@ -41,7 +41,7 @@ public class BotIntegrationTest {
     assertTrue(engine.entered.await(2,TimeUnit.SECONDS));
     long until=System.nanoTime()+TimeUnit.SECONDS.toNanos(3);
     while(System.nanoTime()<until){
-      Shadows.shadowOf(Looper.getMainLooper()).idle();
+      Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(20));
       if(engine.closed||view.humanCanPlay()||actions.failures>0)return;
       Thread.sleep(5);
     }
@@ -128,4 +128,65 @@ public class BotIntegrationTest {
     view.resumeBot();finishAsync();assertTrue(view.gameState.gameOver());assertEquals("EMPATE • REPETIÇÃO TRIPLA",view.gameState.status());assertTrue(engine.closed);
   }
 
+  void awaitQueuedMove()throws Exception{
+    assertTrue(engine.entered.await(2,TimeUnit.SECONDS));
+    long deadline=System.nanoTime()+TimeUnit.SECONDS.toNanos(3);
+    while(System.nanoTime()<deadline){
+      Shadows.shadowOf(Looper.getMainLooper()).idle();
+      if(view.botMovePending())return;
+      Thread.sleep(5);
+    }
+    fail("Bot result was not queued");
+  }
+  @Test public void instantEngineWaitsTwoSecondsAndChargesBotClock()throws Exception{
+    create(new ChessGame(),false,"e2e4");view.resumeBot();awaitQueuedMove();
+    assertEquals("-",view.gameState.transcript());assertFalse(view.humanCanPlay());
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1999));
+    assertEquals("-",view.gameState.transcript());
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1));
+    assertEquals("P",view.gameState.pieceAt(4,4));assertEquals(298000,view.matchClock.whiteMs());
+    assertEquals(300000,view.matchClock.blackMs());assertEquals(500,view.animationDuration());
+    assertFalse(view.humanCanPlay());
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(500));assertTrue(view.humanCanPlay());
+  }
+  @Test public void humanAnimationIsNotOverwrittenByInstantBot()throws Exception{
+    create(new ChessGame(),true,"e7e5");
+    assertTrue(view.move(6,4,4,4,"-"));Shadows.shadowOf(Looper.getMainLooper()).idle();awaitQueuedMove();
+    assertEquals("P",view.animPiece);assertEquals(220,view.animationDuration());
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(360));assertEquals("P",view.animPiece);
+    assertNull(view.gameState.pieceAt(3,4));
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1640));
+    assertEquals("p",view.animPiece);assertEquals(500,view.animationDuration());
+  }
+  @Test public void queuedResponseBlocksDuplicateSearches()throws Exception{
+    create(new ChessGame(),false,"e2e4");view.resumeBot();awaitQueuedMove();
+    view.requestBotMove();view.resumeBot();assertEquals(1,engine.searches);
+  }
+  @Test public void exitCancelsAlreadyCalculatedDelayedMove()throws Exception{
+    create(new ChessGame(),false,"e2e4");view.resumeBot();awaitQueuedMove();view.stopBot();
+    assertFalse(view.botMovePending());assertTrue(engine.closed);
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(3));assertEquals("-",view.gameState.transcript());
+  }
+  @Test public void timeoutCancelsQueuedMoveWithoutChangingBoard()throws Exception{
+    create(new ChessGame(),false,"e2e4");view.resumeBot();awaitQueuedMove();
+    view.matchClock.sync(100,300000,SystemClock.elapsedRealtime());
+    ShadowSystemClock.advanceBy(Duration.ofMillis(150));view.ticker.run();
+    assertTrue(view.gameState.gameOver());assertTrue(engine.closed);assertFalse(view.botMovePending());
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofSeconds(3));assertEquals("-",view.gameState.transcript());
+  }
+  @Test public void lowClockShortensPresentationWait()throws Exception{
+    create(new ChessGame(),false,"e2e4");view.matchClock.sync(1000,300000,SystemClock.elapsedRealtime());
+    view.resumeBot();awaitQueuedMove();
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(249));assertEquals("-",view.gameState.transcript());
+    Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1));assertEquals("P",view.gameState.pieceAt(4,4));
+    assertEquals(750,view.matchClock.whiteMs());assertFalse(view.gameState.gameOver());
+  }
+  @Test public void botKnightAnimationIsSlowerWithoutChangingLocalAnimation(){
+    create(new ChessGame(),true,"e7e5");view.startMoveAnimation("n",0,1,2,2);
+    assertEquals(650,view.animationDuration());
+    view.startMoveAnimation("N",7,1,5,2);assertEquals(360,view.animationDuration());
+    ChessView local=new ChessView(RuntimeEnvironment.getApplication(),BoardThemes.CLASSIC,5,false,true,actions);
+    local.startMoveAnimation("n",0,1,2,2);assertEquals(360,local.animationDuration());
+    local.clock.removeCallbacksAndMessages(null);
+  }
 }

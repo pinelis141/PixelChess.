@@ -26,6 +26,9 @@ public final class ChessView extends View {
   private boolean botGame,humanWhite=true,botPaused,botFailed;
   private BotDifficulty botDifficulty;
   private BotController botController;
+  private Runnable pendingBotMove;
+  private long botReadyAt,botGeneration;
+  private static final long BOT_TURN_MS=2000,BOT_ANIM_MS=500,BOT_KNIGHT_ANIM_MS=650;
   interface EngineFactory { ChessEngine create(); }
   private EngineFactory engineFactory;
 
@@ -35,13 +38,18 @@ public final class ChessView extends View {
     botPaused=false;botFailed=false;sr=sc=-1;
     if(isAttachedToWindow())resumeBot();invalidate();
   }
+  boolean botMovePending(){return pendingBotMove!=null;}
   boolean botGame(){return botGame;}
   boolean humanWhite(){return humanWhite;}
   BotDifficulty botDifficulty(){return botDifficulty;}
   boolean boardFlipped(){return botGame?!humanWhite:bluetoothGame?!myWhite:gamePreferences.blackAtBottom();}
-  boolean humanCanPlay(){return !botGame||(!botPaused&&!botFailed&&gameState.whiteTurn()==humanWhite);}
+  boolean humanCanPlay(){return !botGame||(!botPaused&&!botFailed&&gameState.whiteTurn()==humanWhite&&(!animating||SystemClock.elapsedRealtime()-animStart>=animationDuration()));}
   void pauseBot(){if(!botGame)return;botPaused=true;stopBot();}
-  void stopBot(){if(botGame)botPaused=true;if(botController!=null){botController.close();botController=null;}}
+  void stopBot(){
+    if(botGame)botPaused=true;
+    botGeneration++;if(pendingBotMove!=null){clock.removeCallbacks(pendingBotMove);pendingBotMove=null;}
+    if(botController!=null){botController.close();botController=null;}
+  }
   void resumeBot(){
     if(!botGame||gameState.gameOver()||botFailed)return;
     botPaused=false;
@@ -51,16 +59,23 @@ public final class ChessView extends View {
   }
   void requestBotMove(){
     if(!botGame||botPaused||botFailed||gameState.gameOver()||gameState.whiteTurn()==humanWhite)return;
+    if(pendingBotMove!=null||(botController!=null&&botController.thinking()))return;
     if(botController==null){
       try{
         botController=new BotController(engineFactory.create(),task->clock.post(task),new BotController.Listener(){
           public void onMove(EnginePosition position,EngineMove move){
             if(botPaused||botFailed||gameState.gameOver()||gameState.whiteTurn()==humanWhite||!gameState.transcript().equals(position.transcript))return;
-            try{
-              if(applyMove(move.fromRow,move.fromCol,move.toRow,move.toCol,move.promotion)){
-                if(!gameState.gameOver())vibrateTurn();invalidate();
-              }else if(!gameState.gameOver())failBot();
-            }catch(RuntimeException invalid){failBot();}
+            final long token=botGeneration;
+            pendingBotMove=()->{
+              pendingBotMove=null;
+              if(token!=botGeneration||botPaused||botFailed||gameState.gameOver()||gameState.whiteTurn()==humanWhite||!gameState.transcript().equals(position.transcript))return;
+              try{
+                if(applyMove(move.fromRow,move.fromCol,move.toRow,move.toCol,move.promotion)){
+                  if(!gameState.gameOver())vibrateTurn();invalidate();
+                }else if(!gameState.gameOver())failBot();
+              }catch(RuntimeException invalid){failBot();}
+            };
+            clock.postDelayed(pendingBotMove,Math.max(0,botReadyAt-SystemClock.elapsedRealtime()));
           }
           public void onFailure(String message){failBot();}
         });
@@ -68,6 +83,7 @@ public final class ChessView extends View {
     }
     status="STOCKFISH PENSANDO…";invalidate();
     long remaining=gameState.whiteTurn()?matchClock.whiteMs():matchClock.blackMs();
+    botReadyAt=SystemClock.elapsedRealtime()+Math.min(BOT_TURN_MS,Math.max(0,remaining/4));
     botController.request(EnginePosition.from(gameState),botDifficulty,remaining);
   }
   private void failBot(){
@@ -137,7 +153,7 @@ public final class ChessView extends View {
     if(animating){
       int fr=flip?7-animR1:animR1,fc=flip?7-animC1:animC1,tr=flip?7-animR2:animR2,tc=flip?7-animC2:animC2;
       boolean knight=animPiece!=null&&Character.toLowerCase(animPiece.charAt(0))=='n'&&PieceMotion.isKnightMove(fr,fc,tr,tc);
-      long duration=knight?KNIGHT_ANIM_MS:ANIM_MS;
+      long duration=animationDuration();
       float t=PieceMotion.progress(SystemClock.elapsedRealtime()-animStart,duration);
       float ax,ay;
       if(knight){
@@ -251,6 +267,11 @@ public final class ChessView extends View {
   String square(int r,int c){return ""+(char)('a'+c)+(8-r);}
   String[] pixelPattern(char t){switch(Character.toLowerCase(t)){case 'p':return new String[]{"...##...","..####..","..####..","...##...","..####..",".######.","########"};case 'r':return new String[]{"##.##.##","########",".######.","..####..","..####..",".######.","########"};case 'n':return new String[]{"...###..","..#####.",".###.##.",".######.","..#####.","..####..",".######.","########"};case 'b':return new String[]{"...##...","..####..","...##...","..####..",".######.","..####..",".######.","########"};case 'q':return new String[]{"#..##..#",".######.","..####..",".######.","..####..",".######.","########","########"};default:return new String[]{"...##...",".#.##.#.",".######.","..####..",".######.","..####..",".######.","########"};}}
   void drawPixelPiece(Canvas c,String q,float left,float top,float size){String[] pat=pixelPattern(q.charAt(0));float cell=size/10f,ox=left+cell,oy=top+(size-pat.length*cell)/2f;boolean whitePiece=Character.isUpperCase(q.charAt(0));p.setStyle(Paint.Style.FILL);if(whitePiece){p.setColor(Color.rgb(35,38,40));for(int r=0;r<pat.length;r++)for(int x=0;x<pat[r].length();x++)if(pat[r].charAt(x)=='#')for(int dy=-1;dy<=1;dy++)for(int dx=-1;dx<=1;dx++)if(Math.abs(dx)+Math.abs(dy)==1)c.drawRect(ox+(x+dx)*cell,oy+(r+dy)*cell,ox+(x+dx+1)*cell,oy+(r+dy+1)*cell,p);}p.setColor(whitePiece?Color.rgb(248,245,232):Color.rgb(25,28,31));for(int r=0;r<pat.length;r++)for(int x=0;x<pat[r].length();x++)if(pat[r].charAt(x)=='#')c.drawRect(ox+x*cell,oy+r*cell,ox+(x+1)*cell,oy+(r+1)*cell,p);}
+  long animationDuration(){
+    boolean knight=animPiece!=null&&Character.toLowerCase(animPiece.charAt(0))=='n'&&PieceMotion.isKnightMove(animR1,animC1,animR2,animC2);
+    boolean opponent=botGame&&animPiece!=null&&ChessGame.isWhitePiece(animPiece)!=humanWhite;
+    return opponent?(knight?BOT_KNIGHT_ANIM_MS:BOT_ANIM_MS):(knight?KNIGHT_ANIM_MS:ANIM_MS);
+  }
   void startMoveAnimation(String q,int r1,int c1,int r2,int c2){animPiece=q;capturedPiece=gameState.pieceAt(r2,c2);if(capturedPiece==null&&Character.toLowerCase(q.charAt(0))=='p'&&c1!=c2)capturedPiece=gameState.pieceAt(r1,c2);animR1=r1;animC1=c1;animR2=r2;animC2=c2;animStart=SystemClock.elapsedRealtime();animating=true;postInvalidateOnAnimation();}
   @Override public boolean performClick(){super.performClick();return true;}
   public boolean onTouchEvent(MotionEvent e){if(e.getAction()!=MotionEvent.ACTION_UP)return true;performClick();if(suspended){toast("Partida pausada. Reconecte para continuar.");return true;}float den=getResources().getDisplayMetrics().density;boardGeometry.update(getWidth(),getHeight(),den,themeRenderer.hasScene());float gutter=boardGeometry.left,w=boardGeometry.size,s=w/8f,top=boardGeometry.top;if(e.getX()<gutter||e.getX()>=gutter+w||e.getY()<top||e.getY()>=top+w)return true;int vx=(int)((e.getX()-gutter)/s),vr=(int)((e.getY()-top)/s);if(vr<0||vr>7||vx<0||vx>7)return true;boolean flip=boardFlipped();int x=flip?7-vx:vx,r=flip?7-vr:vr;if(gameState.gameOver()){toast("A partida terminou");return true;}
