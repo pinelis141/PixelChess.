@@ -30,7 +30,7 @@ All hits have identical PCM amplitude and a shared SoundPool gain of 65% in both
 channels. White, black, human and bot use the same audio path. Terminal cues differ
 only by repetition; they do not receive a louder gain. Device media volume still
 applies. Per-hit equality avoids using whole-file RMS normalization, which would
-inflate the terminal cue because of its silent gap. Combined WAV size: 42,528 bytes.
+inflate the terminal cue because of its silent gap. Combined WAV size: 42,468 bytes.
 
 SoundPool uses USAGE_GAME / sonification and one stream, preventing stacked effects.
 Loading is asynchronous; unavailable samples are skipped rather than queued as stale
