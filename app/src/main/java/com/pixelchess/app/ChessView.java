@@ -64,7 +64,7 @@ public final class ChessView extends View {
     for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
       String squarePiece=gameState.pieceAt(r,x);
       if(squarePiece!=null&&Character.toLowerCase(squarePiece.charAt(0))=='k'&&gameState.inCheck(ChessGame.isWhitePiece(squarePiece))){
-        p.setColor(gameState.gameOver()?Color.rgb(198,40,40):Color.rgb(245,124,0));
+        p.setColor(gameState.status().startsWith("XEQUE-MATE")?Color.rgb(198,40,40):Color.rgb(245,124,0));
         c.drawRect(left0+vx*s,top+vr*s,left0+(vx+1)*s,top+(vr+1)*s,p);
       }
       if(sr==r&&sc==x)drawGoldSquare(c,left0+vx*s,top+vr*s,s,true);
@@ -101,12 +101,12 @@ public final class ChessView extends View {
     p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(1f,size*.018f));p.setColor(Color.rgb(247,214,132));c.drawPath(diamond,p);p.setStyle(Paint.Style.FILL);
   }
   void loadPieceSprites(){
-    pieceSprites.put('P',cleanDisconnectedSprite(R.drawable.w_pawn));
-    pieceSprites.put('R',cleanDisconnectedSprite(R.drawable.w_rook));
-    pieceSprites.put('N',cleanDisconnectedSprite(R.drawable.w_knight));
-    pieceSprites.put('B',cleanDisconnectedSprite(R.drawable.w_bishop));
-    pieceSprites.put('Q',cleanDisconnectedSprite(R.drawable.w_queen));
-    pieceSprites.put('K',cleanDisconnectedSprite(R.drawable.w_king));
+    pieceSprites.put('P',outlinedWhiteSprite(R.drawable.w_pawn));
+    pieceSprites.put('R',outlinedWhiteSprite(R.drawable.w_rook));
+    pieceSprites.put('N',outlinedWhiteSprite(R.drawable.w_knight));
+    pieceSprites.put('B',outlinedWhiteSprite(R.drawable.w_bishop));
+    pieceSprites.put('Q',outlinedWhiteSprite(R.drawable.w_queen));
+    pieceSprites.put('K',outlinedWhiteSprite(R.drawable.w_king));
     pieceSprites.put('p',cleanDisconnectedSprite(R.drawable.b_pawn));
     pieceSprites.put('r',cleanDisconnectedSprite(R.drawable.b_rook));
     pieceSprites.put('n',cleanDisconnectedSprite(R.drawable.b_knight));
@@ -114,6 +114,7 @@ public final class ChessView extends View {
     pieceSprites.put('q',cleanDisconnectedSprite(R.drawable.b_queen));
     pieceSprites.put('k',cleanDisconnectedSprite(R.drawable.b_king));
   }
+  Bitmap outlinedWhiteSprite(int resId){return SpriteOutline.thinDark(cleanDisconnectedSprite(resId));}
   Bitmap cleanDisconnectedSprite(int resId){
     Bitmap src=BitmapFactory.decodeResource(getResources(),resId);
     if(src==null)return null;
