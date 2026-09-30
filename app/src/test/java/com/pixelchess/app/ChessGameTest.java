@@ -36,4 +36,29 @@ public class ChessGameTest {
     assertFalse(game.hasHistory());
     assertEquals("P",game.pieceAt(6,4));
   }
+  @Test public void lastMoveIsTrackedAndReset(){
+    ChessGame game=new ChessGame();
+    assertFalse(game.hasLastMove());
+    assertTrue(game.move(6,4,4,4,"-"));
+    assertTrue(game.hasLastMove());
+    assertEquals(6,game.lastFromRow());
+    assertEquals(4,game.lastFromCol());
+    assertEquals(4,game.lastToRow());
+    assertEquals(4,game.lastToCol());
+    game.reset();
+    assertFalse(game.hasLastMove());
+  }
+
+  @Test public void replayRestoresLastMove(){
+    ChessGame game=new ChessGame();
+    assertTrue(game.move(6,4,4,4,"-"));
+    assertTrue(game.move(1,4,3,4,"-"));
+    ChessGame restored=ChessGame.replay(game.transcript());
+    assertTrue(restored.hasLastMove());
+    assertEquals(1,restored.lastFromRow());
+    assertEquals(4,restored.lastFromCol());
+    assertEquals(3,restored.lastToRow());
+    assertEquals(4,restored.lastToCol());
+  }
+
 }
