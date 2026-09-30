@@ -220,7 +220,7 @@ public final class ChessView extends View {
     matchClock.flag(loserWhite);
     gameState.finish("TEMPO • "+(loserWhite?"PRETAS":"BRANCAS")+" VENCEM");
     status=gameState.status();
-    awaitingAuthority=false;sr=sc=-1;
+    awaitingAuthority=false;sr=sc=-1;animating=false;capturedPiece=null;
     if(promotionDialog!=null){promotionDialog.dismiss();promotionDialog=null;}
     invalidate();
   }
@@ -230,7 +230,7 @@ public final class ChessView extends View {
     final boolean side=ChessGame.isWhitePiece(gameState.pieceAt(r1,c1));final String[] labels={"DAMA","TORRE","BISPO","CAVALO"},pcs={"Q","R","B","N"};
     LinearLayout box=new LinearLayout(getContext());box.setOrientation(LinearLayout.VERTICAL);box.setPadding(32,16,32,16);
     AlertDialog dialog=new AlertDialog.Builder(getContext()).setTitle("PROMOÇÃO").setMessage("Escolha a peça:").setView(box).setCancelable(false).create();
-    for(int i=0;i<4;i++){final int k=i;Button bt=button(labels[i]);bt.setTextColor(Color.BLACK);bt.setBackgroundColor(Color.rgb(238,238,238));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,6,0,6);box.addView(bt,lp);bt.setOnClickListener(v->{if(suspended||gameState.gameOver()){dialog.dismiss();promotionDialog=null;return;}String z=pcs[k];if(!side)z=z.toLowerCase(Locale.ROOT);if(bluetoothGame&&!myWhite){awaitingAuthority=true;sr=sc=-1;actions.requestMove(r1,c1,r2,c2,z);}else if(move(r1,c1,r2,c2,z)&&bluetoothGame){actions.sendAuthorityMove(r1,c1,r2,c2,z);}sr=sc=-1;dialog.dismiss();invalidate();});}
+    for(int i=0;i<4;i++){final int k=i;Button bt=button(labels[i]);bt.setTextColor(Color.BLACK);bt.setBackgroundColor(Color.rgb(238,238,238));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,6,0,6);box.addView(bt,lp);bt.setOnClickListener(v->{if(suspended||gameState.gameOver()){dialog.dismiss();promotionDialog=null;return;}String z=pcs[k];if(!side)z=z.toLowerCase(Locale.ROOT);if(bluetoothGame&&!myWhite){awaitingAuthority=true;sr=sc=-1;actions.requestMove(r1,c1,r2,c2,z);}else if(move(r1,c1,r2,c2,z)&&bluetoothGame){actions.sendAuthorityMove(r1,c1,r2,c2,z);}sr=sc=-1;dialog.dismiss();promotionDialog=null;invalidate();});}
     promotionDialog=dialog;dialog.show();
   }
   void select(int r,int c){String q=gameState.pieceAt(r,c);if(q!=null&&ChessGame.isWhitePiece(q)==gameState.whiteTurn()){sr=r;sc=c;invalidate();}}
