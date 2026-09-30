@@ -151,7 +151,15 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   @Override public void onInterrupted(String reason){
     if(isFinishing()||isDestroyed())return;
     if(connectionDialog!=null){connectionDialog.dismiss();connectionDialog=null;}
-    boolean resume=game!=null&&game.online();if(resume)game.applyConnectionLost();
+    boolean onlineGame=game!=null&&game.online();
+    if(onlineGame)game.applyConnectionLost();
+    if(onlineGame&&game.gameState.gameOver()){
+      new AlertDialog.Builder(this).setTitle("Partida encerrada")
+        .setMessage(game.gameState.status()+"\n\n"+reason)
+        .setPositiveButton("VOLTAR AO MENU",(d,w)->showMenu()).setCancelable(false).show();
+      return;
+    }
+    boolean resume=onlineGame;
     new AlertDialog.Builder(this).setTitle(resume?"Partida pausada":"Não foi possível conectar")
       .setMessage(reason+(resume?"\n\nO tabuleiro foi mantido e os relógios estão pausados. Toquem em reconectar nos dois aparelhos.":""))
       .setPositiveButton(resume?"RECONECTAR":"TENTAR NOVAMENTE",(d,w)->{waiting(matchConnection.isHost());matchConnection.retry(resume);})
