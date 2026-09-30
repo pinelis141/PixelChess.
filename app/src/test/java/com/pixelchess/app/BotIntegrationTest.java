@@ -111,4 +111,21 @@ public class BotIntegrationTest {
   @Test public void repeatedRequestsNeverRunConcurrentSearches()throws Exception{
     create(new ChessGame(),false,"e2e4");engine.blocking=true;view.resumeBot();assertTrue(engine.entered.await(2,TimeUnit.SECONDS));view.requestBotMove();view.requestBotMove();assertEquals(1,engine.searches);
   }
+  @Test public void blackBotPromotionUsesCorrectCase()throws Exception{
+    create(position("b1c3","a7a5","h2h4","a5a4","h4h5","a4a3","h5h6","a3b2","c3a4"),true,"b2b1n");
+    view.resumeBot();finishAsync();assertEquals("n",view.gameState.pieceAt(7,1));
+  }
+  @Test public void blackBotCastlingUsesSameRules()throws Exception{
+    create(position("e2e4","e7e5","g1f3","g8f6","f1e2","f8e7","d2d3"),true,"e8g8");
+    view.resumeBot();finishAsync();assertEquals("k",view.gameState.pieceAt(0,6));assertEquals("r",view.gameState.pieceAt(0,5));
+  }
+  @Test public void blackBotEnPassantUsesSameRules()throws Exception{
+    create(position("a2a3","e7e5","a3a4","e5e4","d2d4"),true,"e4d3");
+    view.resumeBot();finishAsync();assertEquals("p",view.gameState.pieceAt(5,3));assertNull(view.gameState.pieceAt(4,3));
+  }
+  @Test public void botRepetitionDrawClosesEngineWithoutAnotherSearch()throws Exception{
+    create(position("g1f3","g8f6","f3g1","f6g8","g1f3","g8f6","f3g1"),true,"f6g8");
+    view.resumeBot();finishAsync();assertTrue(view.gameState.gameOver());assertEquals("EMPATE • REPETIÇÃO TRIPLA",view.gameState.status());assertTrue(engine.closed);
+  }
+
 }

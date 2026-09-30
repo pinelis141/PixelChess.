@@ -60,6 +60,13 @@ jobs:
       - name: Build debug and release packages
         run: gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
+      - name: Verify packaged Stockfish on Android 35
+        run: |
+          sudo chmod a+rw /dev/kvm
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'emulator' 'system-images;android-35;default;x86_64'
+          echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n pixelchess35 -k 'system-images;android-35;default;x86_64' --device pixel_2
+          tools/verify_android_stockfish.sh
+
       - uses: actions/upload-artifact@v4
         with:
           name: PixelChess-debug-apk

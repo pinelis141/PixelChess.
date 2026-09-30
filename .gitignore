@@ -7,3 +7,5 @@ build/
 *.jks
 *.keystore
 app/src/main/jniLibs/
+__pycache__/
+*.pyc

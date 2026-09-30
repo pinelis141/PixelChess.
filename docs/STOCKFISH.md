@@ -58,8 +58,9 @@ gradle :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleRel
 ```
 
 CI preserves existing tests, lint, debug/release APK and release AAB tasks. It adds native builds
-and uploads `Stockfish-19-corresponding-source` together with APK/AAB artifacts. Native executable
-and device packaging need installation testing on real Android hardware before public release.
+and uploads `Stockfish-19-corresponding-source` together with APK/AAB artifacts. CI also installs the debug APK on an Android 35 emulator and exercises the actual packaged
+engine under the app UID: all five difficulties, castling, en passant, underpromotion, terminal mate
+and clean process teardown. Physical smartphone playtesting is still needed before public release.
 
 ## Difficulty
 
