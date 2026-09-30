@@ -25,7 +25,9 @@ for abi in arm64-v8a armeabi-v7a x86_64; do
   cp stockfish "$output_dir/$abi/libstockfish.so"
   sha256sum "$output_dir/$abi/libstockfish.so" >> "$manifest"
   # Executable PIE in nativeLibraryDir, never dlopen/JNI. No shared C++ dependency.
-  llvm-readelf -h stockfish | grep -q 'DYN'
-  if llvm-readelf -d stockfish | grep -q 'libc++_shared'; then exit 1; fi
+  elf_header=$(llvm-readelf -h stockfish)
+  [[ $elf_header == *DYN* ]] || { echo "Expected executable PIE for $abi" >&2; exit 1; }
+  elf_dependencies=$(llvm-readelf -d stockfish)
+  [[ $elf_dependencies != *libc++_shared* ]] || { echo "Expected static C++ runtime for $abi" >&2; exit 1; }
 done
 make clean
