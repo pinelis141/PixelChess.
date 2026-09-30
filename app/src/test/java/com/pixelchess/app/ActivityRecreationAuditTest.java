@@ -21,7 +21,7 @@ public class ActivityRecreationAuditTest {
       activity.game=new ChessView(activity,BoardThemes.CLASSIC,5,false,true,activity);
       activity.setContentView(activity.game);
       assertTrue(activity.game.move(6,4,4,4,"-"));
-      activity.onSaveInstanceState(state);
+      first.saveInstanceState(state);
     }finally{
       first.pause().stop().destroy();
     }
