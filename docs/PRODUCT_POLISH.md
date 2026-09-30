@@ -1,7 +1,9 @@
-# Produto — 0.26.4
+# Produto — 0.26.5
 
 ## Arquitetura e UX
 
+- No modo local, toques do próximo jogador não são mais descartados enquanto a animação da jogada anterior ainda termina; o estado já trocou de turno, então a próxima seleção pode ser feita imediatamente.
+- Foram adicionadas regressões para jogadas rápidas de brancas e pretas no mesmo aparelho e para mobilidade de torre, bispo e rainha com caminho livre em ambos os lados.
 - A última jogada permanece destacada no tabuleiro, marcando origem e destino com um realce dourado discreto e diferente dos marcadores de movimento possível.
 - O destaque é parte do estado reconstruível da partida e reaparece corretamente após replay/reconexão Bluetooth.
 - O cavalo usa 360 ms para completar a trajetória em L; as demais peças continuam em 220 ms.
