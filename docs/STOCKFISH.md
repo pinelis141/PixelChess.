@@ -27,7 +27,8 @@ UCI startup: `uci`/`uciok`, configure Threads/Hash/Ponder/Chess960, `ucinewgame`
 Every calculation updates strength, checks ready, sends position then bounded `go`. Startup waits
 have 8-second bounds, ready has 3 seconds and search has movetime + 2 seconds. stdout is drained
 on a separate daemon thread with bounded line length and queue; unexpected protocol replies,
-EOF, invalid moves, launch failure and timeout all fail closed. Teardown uses destroyForcibly,
+EOF, invalid moves, launch failure and timeout all fail closed. A 25-second total watchdog also
+bounds process startup and blocked stdin writes; it kills the engine outside UI and is closed with it. Teardown uses destroyForcibly,
 never a UI-thread pipe write or waitFor. Late callbacks are invalidated when a controller closes.
 
 ## Android build and packaging

@@ -83,6 +83,9 @@ public class EngineContractTest {
       try{request.get(2,java.util.concurrent.TimeUnit.SECONDS);fail();}catch(java.util.concurrent.ExecutionException expected){}
       java.lang.reflect.Field rf=StockfishEngine.class.getDeclaredField("reader");rf.setAccessible(true);Thread reader=(Thread)rf.get(engine);
       reader.join(2000);assertFalse(reader.isAlive());
+      java.lang.reflect.Field wf=StockfishEngine.class.getDeclaredField("watchdog");wf.setAccessible(true);
+      java.util.concurrent.ExecutorService watchdog=(java.util.concurrent.ExecutorService)wf.get(engine);
+      assertTrue(watchdog.awaitTermination(2,java.util.concurrent.TimeUnit.SECONDS));
     }finally{engine.close();executor.shutdownNow();}
   }
   @Test public void nonResponsiveEngineHasBoundedHandshake()throws Exception{

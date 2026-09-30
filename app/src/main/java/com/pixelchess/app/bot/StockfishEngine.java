@@ -10,6 +10,7 @@ public final class StockfishEngine implements ChessEngine {
   private final String executable;
   private final Object lifecycle=new Object();
   private final BlockingQueue<String> replies=new ArrayBlockingQueue<>(128);
+  private final ScheduledExecutorService watchdog=Executors.newSingleThreadScheduledExecutor(r->{Thread t=new Thread(r,"stockfish-watchdog");t.setDaemon(true);return t;});
   private volatile boolean closed;
   private Process process;
   private BufferedWriter input;
@@ -18,13 +19,19 @@ public final class StockfishEngine implements ChessEngine {
   public StockfishEngine(String executable){this.executable=executable;}
   @Override public String search(EnginePosition position,BotDifficulty level,long remainingMs) throws Exception {
     if(closed)throw new IOException("Engine closed");
-    if(!initialized)start();
-    send("setoption name UCI_LimitStrength value "+(level.elo>0));
-    send("setoption name Skill Level value "+level.skill);
-    if(level.elo>0)send("setoption name UCI_Elo value "+level.elo);
-    send("isready");await("readyok",deadline(3000));
-    send(position.command);send(level.go(remainingMs));
-    return await("bestmove ",deadline(level.budget(remainingMs)+2000)).split("\\s+")[1];
+    // Also bounds startup and blocked stdin writes, not only stdout polling.
+    ScheduledFuture<?> timeout=watchdog.schedule(this::close,25,TimeUnit.SECONDS);
+    try{
+      if(!initialized)start();
+      send("setoption name UCI_LimitStrength value "+(level.elo>0));
+      send("setoption name Skill Level value "+level.skill);
+      if(level.elo>0)send("setoption name UCI_Elo value "+level.elo);
+      send("isready");await("readyok",deadline(3000));
+      send(position.command);send(level.go(remainingMs));
+      String reply=await("bestmove ",deadline(level.budget(remainingMs)+2000));
+      if(closed)throw new IOException("Engine deadline exceeded");
+      return reply.split("\\s+")[1];
+    }finally{timeout.cancel(false);}
   }
   private void start() throws Exception {
     Process launched=new ProcessBuilder(executable).redirectErrorStream(true).start();
@@ -74,7 +81,7 @@ public final class StockfishEngine implements ChessEngine {
       if(closed)return;closed=true;
       // No pipe writes/waitFor on UI: forcible teardown also handles an unresponsive engine.
       if(process!=null)process.destroyForcibly();
-      if(reader!=null)reader.interrupt();replies.offer(EOF);
+      if(reader!=null)reader.interrupt();replies.offer(EOF);watchdog.shutdownNow();
     }
   }
 }
