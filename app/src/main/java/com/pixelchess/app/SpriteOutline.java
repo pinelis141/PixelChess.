@@ -5,10 +5,14 @@ import android.graphics.Color;
 
 /** Adds a one-pixel contrast contour around opaque pixel-art sprites without filtering. */
 final class SpriteOutline {
-  private static final int EDGE=Color.argb(190,38,42,45);
+  private static final int DARK_EDGE=Color.argb(190,38,42,45);
+  private static final int LIGHT_EDGE=Color.argb(170,208,199,181);
   private SpriteOutline(){}
 
-  static Bitmap thinDark(Bitmap source){
+  static Bitmap thinDark(Bitmap source){return thin(source,DARK_EDGE);}
+  static Bitmap thinLight(Bitmap source){return thin(source,LIGHT_EDGE);}
+
+  private static Bitmap thin(Bitmap source,int edgeColor){
     if(source==null)return null;
     int w=source.getWidth(),h=source.getHeight(),n=w*h;
     int[] src=new int[n],out=new int[n];
@@ -23,7 +27,7 @@ final class SpriteOutline {
         int xx=x+dx,yy=y+dy;
         if(xx>=0&&xx<w&&yy>=0&&yy<h&&Color.alpha(src[yy*w+xx])>10){near=true;break;}
       }
-      if(near)out[i]=EDGE;
+      if(near)out[i]=edgeColor;
     }
     Bitmap result=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888);
     result.setPixels(out,0,w,0,0,w,h);
