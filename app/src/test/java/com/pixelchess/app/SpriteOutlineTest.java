@@ -19,4 +19,16 @@ public class SpriteOutlineTest {
     assertTrue(Color.alpha(result.getPixel(1,1))>0);
     assertEquals(0,Color.alpha(result.getPixel(0,0)));
   }
+
+  @Test public void lightOutlinePreservesBlackSpriteInterior(){
+    Bitmap source=Bitmap.createBitmap(5,5,Bitmap.Config.ARGB_8888);
+    int blackDetail=Color.rgb(24,27,31);
+    source.setPixel(2,2,blackDetail);
+    Bitmap result=SpriteOutline.thinLight(source);
+    assertEquals(blackDetail,result.getPixel(2,2));
+    int edge=result.getPixel(2,1);
+    assertTrue(Color.alpha(edge)>=160&&Color.alpha(edge)<=180);
+    assertTrue(Color.red(edge)>Color.red(blackDetail));
+    assertEquals(0,Color.alpha(result.getPixel(0,0)));
+  }
 }
