@@ -78,7 +78,7 @@ public class PerftAuditTest {
   }
 
   @Test public void kiwipeteLegalMoveCountMatchesReference()throws Exception{
-    ChessGame g=fen("r3k2r/p1ppqpb1/bn2pnp1/2pP4/1p2P3/2N2N2/PPQBBPPP/R3K2R w KQkq - 0 1");
+    ChessGame g=fen("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
     assertEquals(48,legalMoveCount(g));
   }
 
