@@ -26,7 +26,7 @@ public final class ChessView extends View {
   Paint p=new Paint(3); int sr=-1,sc=-1; String status="BRANCAS JOGAM";
   ChessGame gameState=new ChessGame(); final GameClock matchClock;
   HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); final BoardThemeRenderer themeRenderer; final SceneGeometry boardGeometry=new SceneGeometry(); Paint spritePaint=new Paint();
-  boolean flagSent=false,awaitingAuthority=false; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece,capturedPiece; long animStart; final long ANIM_MS=220; Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
+  boolean flagSent=false,awaitingAuthority=false; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece,capturedPiece; long animStart; final long ANIM_MS=220,KNIGHT_ANIM_MS=360; Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
   ChessView(Context c,BoardTheme selectedTheme,int minutes,boolean online,boolean white,Actions actions){
     super(c);this.actions=actions;selectedMinutes=minutes;bluetoothGame=online;myWhite=white;gamePreferences=new GamePreferences(c);
     p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD));
@@ -74,9 +74,10 @@ public final class ChessView extends View {
       String q=gameState.pieceAt(r,x);if(q!=null&&!(animating&&r==animR2&&x==animC2))drawPieceSprite(c,q,left0+vx*s,top+vr*s,s);
     }
     if(animating){
-      float t=PieceMotion.progress(System.currentTimeMillis()-animStart,ANIM_MS);
       int fr=flip?7-animR1:animR1,fc=flip?7-animC1:animC1,tr=flip?7-animR2:animR2,tc=flip?7-animC2:animC2;
       boolean knight=animPiece!=null&&Character.toLowerCase(animPiece.charAt(0))=='n'&&PieceMotion.isKnightMove(fr,fc,tr,tc);
+      long duration=knight?KNIGHT_ANIM_MS:ANIM_MS;
+      float t=PieceMotion.progress(System.currentTimeMillis()-animStart,duration);
       float ax,ay;
       if(knight){
         ax=left0+PieceMotion.knightColumn(fr,fc,tr,tc,t)*s;
@@ -130,14 +131,15 @@ public final class ChessView extends View {
     pieceSprites.put('B',outlinedWhiteSprite(R.drawable.w_bishop));
     pieceSprites.put('Q',outlinedWhiteSprite(R.drawable.w_queen));
     pieceSprites.put('K',outlinedWhiteSprite(R.drawable.w_king));
-    pieceSprites.put('p',cleanDisconnectedSprite(R.drawable.b_pawn));
-    pieceSprites.put('r',cleanDisconnectedSprite(R.drawable.b_rook));
-    pieceSprites.put('n',cleanDisconnectedSprite(R.drawable.b_knight));
-    pieceSprites.put('b',cleanDisconnectedSprite(R.drawable.b_bishop));
-    pieceSprites.put('q',cleanDisconnectedSprite(R.drawable.b_queen));
-    pieceSprites.put('k',cleanDisconnectedSprite(R.drawable.b_king));
+    pieceSprites.put('p',outlinedBlackSprite(R.drawable.b_pawn));
+    pieceSprites.put('r',outlinedBlackSprite(R.drawable.b_rook));
+    pieceSprites.put('n',outlinedBlackSprite(R.drawable.b_knight));
+    pieceSprites.put('b',outlinedBlackSprite(R.drawable.b_bishop));
+    pieceSprites.put('q',outlinedBlackSprite(R.drawable.b_queen));
+    pieceSprites.put('k',outlinedBlackSprite(R.drawable.b_king));
   }
   Bitmap outlinedWhiteSprite(int resId){return SpriteOutline.thinDark(cleanDisconnectedSprite(resId));}
+  Bitmap outlinedBlackSprite(int resId){return SpriteOutline.thinLight(cleanDisconnectedSprite(resId));}
   Bitmap cleanDisconnectedSprite(int resId){
     Bitmap src=BitmapFactory.decodeResource(getResources(),resId);
     if(src==null)return null;
