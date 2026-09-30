@@ -16,6 +16,7 @@ public final class ChessGame {
   private boolean whiteKingMoved,blackKingMoved,whiteRookA,whiteRookH,blackRookA,blackRookH;
   private boolean gameOver;
   private int epRow=-1,epCol=-1,halfmove;
+  private int lastR1=-1,lastC1=-1,lastR2=-1,lastC2=-1;
   private String status="BRANCAS JOGAM";
 
   private static final String BACK="rnbqkbnr";
@@ -35,6 +36,7 @@ public final class ChessGame {
     gameOver=false;
     epRow=epCol=-1;
     halfmove=0;
+    lastR1=lastC1=lastR2=lastC2=-1;
     repetitions.clear();
     history.clear();
     moves.clear();
@@ -48,6 +50,11 @@ public final class ChessGame {
   public String status(){return status;}
   public List<String> history(){return java.util.Collections.unmodifiableList(history);}
   public boolean hasHistory(){return !history.isEmpty();}
+  public boolean hasLastMove(){return lastR1>=0;}
+  public int lastFromRow(){return lastR1;}
+  public int lastFromCol(){return lastC1;}
+  public int lastToRow(){return lastR2;}
+  public int lastToCol(){return lastC2;}
 
   public void forceTurn(boolean white){whiteTurn=white;}
   public void finish(String terminalStatus){gameOver=true;status=terminalStatus;}
@@ -133,6 +140,7 @@ public final class ChessGame {
     }
 
     moves.add(""+r1+c1+r2+c2+(promotes?chosen:"-"));
+    lastR1=r1;lastC1=c1;lastR2=r2;lastC2=c2;
     history.add((history.size()/2+1)+(side?".":"...")+notation);
     if(type=='p'||captured!=null)halfmove=0;else halfmove++;
     whiteTurn=!whiteTurn;

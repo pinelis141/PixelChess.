@@ -62,6 +62,8 @@ public final class ChessView extends View {
     themeRenderer.draw(c,left0,top,w,den0);
     if(themeRenderer.animated() && isShown())postInvalidateDelayed(50);
     for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
+      if(gameState.hasLastMove()&&((r==gameState.lastFromRow()&&x==gameState.lastFromCol())||(r==gameState.lastToRow()&&x==gameState.lastToCol())))
+        drawLastMoveSquare(c,left0+vx*s,top+vr*s,s);
       String squarePiece=gameState.pieceAt(r,x);
       if(squarePiece!=null&&Character.toLowerCase(squarePiece.charAt(0))=='k'&&gameState.inCheck(ChessGame.isWhitePiece(squarePiece))){
         p.setColor(gameState.status().startsWith("XEQUE-MATE")?Color.rgb(198,40,40):Color.rgb(245,124,0));
@@ -108,6 +110,19 @@ public final class ChessView extends View {
     p.setTextSize(11.5f*getResources().getDisplayMetrics().scaledDensity);p.setColor(themeRenderer.hasBackground()?Color.rgb(214,211,196):Color.rgb(142,146,143));String h=!gameState.hasHistory()?"JOGADAS  ·  nenhuma":gameState.historyLine().replace("JOGADAS:","JOGADAS  ·");if(p.measureText(h)>getWidth()*.94f)p.setTextSize(p.getTextSize()*getWidth()*.94f/p.measureText(h));c.drawText(h,getWidth()/2f,(themeRenderer.hasScene()?Math.min(getHeight()-14*den,top+w+125*den):Math.min(getHeight()-48*den,top+w+112*den)),p);
     p.setTextSize(9*getResources().getDisplayMetrics().scaledDensity);p.setColor(Color.rgb(55,59,61));if(!themeRenderer.hasScene())c.drawText("◆  PIXEL CHESS  ◆",getWidth()/2f,Math.min(getHeight()-20*den,top+w+140*den),p);p.clearShadowLayer();
   }
+  void drawLastMoveSquare(Canvas c,float left,float top,float size){
+    p.setStyle(Paint.Style.FILL);
+    p.setColor(Color.argb(54,214,168,78));
+    c.drawRect(left,top,left+size,top+size,p);
+
+    p.setStyle(Paint.Style.STROKE);
+    p.setStrokeWidth(Math.max(1f,size*.018f));
+    p.setColor(Color.argb(115,238,195,101));
+    float in=Math.max(1f,size*.018f);
+    c.drawRect(left+in,top+in,left+size-in,top+size-in,p);
+    p.setStyle(Paint.Style.FILL);
+  }
+
   void drawCaptureTarget(Canvas c,float left,float top,float size){
     p.setStyle(Paint.Style.FILL);p.setColor(Color.argb(52,235,151,35));c.drawRect(left,top,left+size,top+size,p);
     p.setStyle(Paint.Style.STROKE);p.setStrokeWidth(Math.max(2f,size*.04f));p.setColor(Color.rgb(246,178,54));
