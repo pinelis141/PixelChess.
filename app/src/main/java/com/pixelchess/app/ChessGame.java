@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 /** Pure chess state and rules. No Android, rendering, clock or transport dependencies. */
 public final class ChessGame {
@@ -29,7 +30,7 @@ public final class ChessGame {
       board[0][i]=""+BACK.charAt(i);
       board[1][i]="p";
       board[6][i]="P";
-      board[7][i]=(""+BACK.charAt(i)).toUpperCase();
+      board[7][i]=(""+BACK.charAt(i)).toUpperCase(Locale.ROOT);
     }
     whiteTurn=true;
     whiteKingMoved=blackKingMoved=whiteRookA=whiteRookH=blackRookA=blackRookH=false;
@@ -56,8 +57,14 @@ public final class ChessGame {
   public int lastToRow(){return lastR2;}
   public int lastToCol(){return lastC2;}
 
-  public void forceTurn(boolean white){whiteTurn=white;}
   public void finish(String terminalStatus){gameOver=true;status=terminalStatus;}
+
+  public boolean isCapture(int r1,int c1,int r2,int c2){
+    String piece=pieceAt(r1,c1);
+    if(piece==null||!isLegal(r1,c1,r2,c2))return false;
+    if(pieceAt(r2,c2)!=null)return true;
+    return Character.toLowerCase(piece.charAt(0))=='p'&&c1!=c2&&r2==epRow&&c2==epCol;
+  }
 
   public static boolean isWhitePiece(String piece){
     return piece!=null&&Character.isUpperCase(piece.charAt(0));
