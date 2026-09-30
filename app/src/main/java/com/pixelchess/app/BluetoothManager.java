@@ -9,7 +9,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -28,30 +27,34 @@ public final class BluetoothManager {
   public interface WriteCallback { void onError(Exception error); }
 
   public void setAdapter(BluetoothAdapter adapter){this.adapter=adapter;}
-  public BluetoothAdapter adapter(){return adapter;}
-  public boolean available(){return adapter!=null;}
-  public boolean enabled(){return adapter!=null&&adapter.isEnabled();}
-  public Set<BluetoothDevice> bondedDevices(){return adapter.getBondedDevices();}
-
   public void hostAndAccept(String serviceName,UUID uuid)throws IOException {
     requireAdapter();
-    serverSocket=adapter.listenUsingRfcommWithServiceRecord(serviceName,uuid);
-    if(closed){serverSocket.close();throw new IOException("Conexão cancelada");}
-    socket=serverSocket.accept();
-    serverSocket.close();
-    serverSocket=null;
-    if(closed){socket.close();throw new IOException("Conexão cancelada");}
-    synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
+    try{
+      serverSocket=adapter.listenUsingRfcommWithServiceRecord(serviceName,uuid);
+      if(closed){serverSocket.close();throw new IOException("Conexão cancelada");}
+      socket=serverSocket.accept();
+      serverSocket.close();
+      serverSocket=null;
+      if(closed){socket.close();throw new IOException("Conexão cancelada");}
+      synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
+    }catch(SecurityException denied){
+      throw new IOException("Permissão Bluetooth indisponível. Autorize o acesso e tente novamente.",denied);
+    }
   }
 
   public void connect(BluetoothDevice device,UUID uuid)throws IOException {
     requireAdapter();
-    socket=device.createRfcommSocketToServiceRecord(uuid);
-    adapter.cancelDiscovery();
-    if(closed){socket.close();throw new IOException("Conexão cancelada");}
-    socket.connect();
-    if(closed){socket.close();throw new IOException("Conexão cancelada");}
-    synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
+    if(device==null)throw new IOException("Aparelho Bluetooth não selecionado");
+    try{
+      socket=device.createRfcommSocketToServiceRecord(uuid);
+      adapter.cancelDiscovery();
+      if(closed){socket.close();throw new IOException("Conexão cancelada");}
+      socket.connect();
+      if(closed){socket.close();throw new IOException("Conexão cancelada");}
+      synchronized(writeLock){out=socket.getOutputStream();sessionGeneration++;}
+    }catch(SecurityException denied){
+      throw new IOException("Permissão Bluetooth indisponível. Autorize o acesso e tente novamente.",denied);
+    }
   }
 
   public BufferedReader reader()throws IOException {

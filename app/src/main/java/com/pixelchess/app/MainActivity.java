@@ -22,7 +22,7 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   BluetoothMatchController matchConnection;
   AlertDialog connectionDialog;
   ChessView game;
-  boolean foreground;
+  boolean foreground,mainMenuVisible;
   int selectedMinutes=10;
   BoardTheme selectedTheme=BoardThemes.CLASSIC;
   ThemePreferences themePreferences;
@@ -39,7 +39,7 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
     super.setContentView(view);
   }
   void showMenu(){
-    if(matchConnection!=null)matchConnection.cancel();game=null;
+    if(matchConnection!=null)matchConnection.cancel();game=null;mainMenuVisible=true;
     LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER); box.setPadding(40,40,40,40); box.setBackgroundColor(bg);
     TextView logo=title("♜  PIXEL CHESS  ♞",30); box.addView(logo,new LinearLayout.LayoutParams(-1,-2));
     TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
@@ -53,14 +53,15 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
     box.setPadding(40,40,40,(int)(80*den));
     root.addView(box,new FrameLayout.LayoutParams(-1,-1));
     MusicToggleButton mute=new MusicToggleButton(this);mute.setMuted(menuMusic.isMuted());
-    FrameLayout.LayoutParams corner=new FrameLayout.LayoutParams((int)(48*den),(int)(48*den),Gravity.BOTTOM|Gravity.RIGHT);
+    FrameLayout.LayoutParams corner=new FrameLayout.LayoutParams((int)(48*den),(int)(48*den),Gravity.BOTTOM|Gravity.END);
     corner.setMargins(0,0,(int)(16*den),(int)(16*den));
     root.addView(mute,corner);
     mute.setOnClickListener(v->{menuMusic.toggleMuted();mute.setMuted(menuMusic.isMuted());});
     setContentView(root);menuMusic.setMenuVisible(true);
   }
-  void showSettings(){setContentView(new SettingsView(this,gamePreferences,this::showMenu));}
+  void showSettings(){mainMenuVisible=false;setContentView(new SettingsView(this,gamePreferences,this::showMenu));}
   void chooseSkin(){
+    mainMenuVisible=false;
     setContentView(new ThemeSelectorView(this,BoardThemes.ALL,selectedTheme.id,new ThemeSelectorView.Listener(){
       @Override public void onThemeSelected(BoardTheme theme){
         if(theme.locked){toast("Esta skin ainda está bloqueada");return;}selectedTheme=theme;
@@ -78,6 +79,8 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
         .setNegativeButton("CONTINUAR",null).show();
       return;
     }
+    if(game!=null){showMenu();return;}
+    if(mainMenuVisible){super.onBackPressed();return;}
     showMenu();
   }
   boolean btPermission(){
@@ -91,24 +94,31 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   void chooseTime(boolean online){
     new AlertDialog.Builder(this).setTitle("Tempo por jogador").setItems(new String[]{"10 minutos","5 minutos","3 minutos"},(d,i)->{
       selectedMinutes=i==0?10:i==1?5:3;
-      if(online)connect(true,null);else{game=new ChessView(this,selectedTheme,selectedMinutes,false,true,this);setContentView(game);}
+      if(online)connect(true,null);else{mainMenuVisible=false;game=new ChessView(this,selectedTheme,selectedMinutes,false,true,this);setContentView(game);}
     }).setNegativeButton("VOLTAR",null).show();
   }
   void bluetoothMenu(){
     if(!btPermission())return;BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();
     if(adapter==null){toast("Este aparelho não possui Bluetooth");return;}
-    if(!adapter.isEnabled()){startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));return;}
+    try{
+      if(!adapter.isEnabled()){startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));return;}
+    }catch(SecurityException denied){toast("A permissão Bluetooth foi removida. Autorize novamente e tente de novo.");return;}
     new AlertDialog.Builder(this).setTitle("Jogar via Bluetooth").setMessage("Use a mesma versão do PixelChess nos dois aparelhos. Quem cria escolhe o tempo.")
       .setPositiveButton("CRIAR PARTIDA",(d,w)->chooseTime(true)).setNegativeButton("ENTRAR",(d,w)->chooseDevice())
       .setNeutralButton("PAREAR APARELHOS",(d,w)->startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))).show();
   }
   void chooseDevice(){
+    if(!btPermission())return;
     BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();if(adapter==null)return;
-    ArrayList<BluetoothDevice> devices=new ArrayList<>(adapter.getBondedDevices());
-    if(devices.isEmpty()){new AlertDialog.Builder(this).setTitle("Parear os aparelhos").setMessage("Pareie o outro celular nas configurações de Bluetooth e volte ao jogo.")
-      .setPositiveButton("ABRIR BLUETOOTH",(d,w)->startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))).setNegativeButton("VOLTAR",null).show();return;}
-    String[] names=new String[devices.size()];for(int i=0;i<names.length;i++){String n=devices.get(i).getName();names[i]=n==null?devices.get(i).getAddress():n;}
-    new AlertDialog.Builder(this).setTitle("Escolha o celular").setItems(names,(d,i)->connect(false,devices.get(i))).setNegativeButton("VOLTAR",null).show();
+    try{
+      ArrayList<BluetoothDevice> devices=new ArrayList<>(adapter.getBondedDevices());
+      if(devices.isEmpty()){new AlertDialog.Builder(this).setTitle("Parear os aparelhos").setMessage("Pareie o outro celular nas configurações de Bluetooth e volte ao jogo.")
+        .setPositiveButton("ABRIR BLUETOOTH",(d,w)->startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))).setNegativeButton("VOLTAR",null).show();return;}
+      String[] names=new String[devices.size()];for(int i=0;i<names.length;i++){String n=devices.get(i).getName();names[i]=n==null?devices.get(i).getAddress():n;}
+      new AlertDialog.Builder(this).setTitle("Escolha o celular").setItems(names,(d,i)->connect(false,devices.get(i))).setNegativeButton("VOLTAR",null).show();
+    }catch(SecurityException denied){
+      toast("A permissão Bluetooth foi removida. Autorize novamente e tente de novo.");
+    }
   }
   void waiting(boolean host){
     if(connectionDialog!=null)connectionDialog.dismiss();
@@ -124,6 +134,7 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   @Override public void onReady(boolean host,MatchSnapshot snapshot,ChessGame restored){
     if(connectionDialog!=null){connectionDialog.dismiss();connectionDialog=null;}
     selectedMinutes=snapshot.minutes;
+    mainMenuVisible=false;
     if(game==null||!game.online()){game=new ChessView(this,selectedTheme,selectedMinutes,true,host,this);game.restore(restored,snapshot.whiteMs,snapshot.blackMs);setContentView(game);}
     else game.restore(restored,snapshot.whiteMs,snapshot.blackMs);
     toast(host?"Conectado • você joga com as brancas":"Conectado • você joga com as pretas");
@@ -140,7 +151,15 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   @Override public void onInterrupted(String reason){
     if(isFinishing()||isDestroyed())return;
     if(connectionDialog!=null){connectionDialog.dismiss();connectionDialog=null;}
-    boolean resume=game!=null&&game.online();if(resume)game.applyConnectionLost();
+    boolean onlineGame=game!=null&&game.online();
+    if(onlineGame)game.applyConnectionLost();
+    if(onlineGame&&game.gameState.gameOver()){
+      new AlertDialog.Builder(this).setTitle("Partida encerrada")
+        .setMessage(game.gameState.status()+"\n\n"+reason)
+        .setPositiveButton("VOLTAR AO MENU",(d,w)->showMenu()).setCancelable(false).show();
+      return;
+    }
+    boolean resume=onlineGame;
     new AlertDialog.Builder(this).setTitle(resume?"Partida pausada":"Não foi possível conectar")
       .setMessage(reason+(resume?"\n\nO tabuleiro foi mantido e os relógios estão pausados. Toquem em reconectar nos dois aparelhos.":""))
       .setPositiveButton(resume?"RECONECTAR":"TENTAR NOVAMENTE",(d,w)->{waiting(matchConnection.isHost());matchConnection.retry(resume);})

@@ -48,6 +48,9 @@ jobs:
       - name: Verify board asset layout
         run: gradle :app:testDebugUnitTest
 
+      - name: Android static analysis
+        run: gradle :app:lintDebug
+
       - name: Build debug and release packages
         run: gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
@@ -58,10 +61,10 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PixelChess-0.26.5-release-apk
+          name: PixelChess-0.27.0-release-apk
           path: app/build/outputs/apk/release/*.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PixelChess-0.26.5-release-aab
+          name: PixelChess-0.27.0-release-aab
           path: app/build/outputs/bundle/release/*.aab
