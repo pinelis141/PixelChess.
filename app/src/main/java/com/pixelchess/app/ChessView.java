@@ -218,7 +218,11 @@ public final class ChessView extends View {
 
   void finishOnTime(boolean loserWhite){
     matchClock.flag(loserWhite);
-    gameState.finish("TEMPO • "+(loserWhite?"PRETAS":"BRANCAS")+" VENCEM");
+    boolean winnerWhite=!loserWhite;
+    if(gameState.canPossiblyMate(winnerWhite))
+      gameState.finish("TEMPO • "+(loserWhite?"PRETAS":"BRANCAS")+" VENCEM");
+    else
+      gameState.finish("EMPATE • TEMPO SEM MATERIAL PARA MATE");
     status=gameState.status();
     awaitingAuthority=false;sr=sc=-1;animating=false;capturedPiece=null;
     if(promotionDialog!=null){promotionDialog.dismiss();promotionDialog=null;}
