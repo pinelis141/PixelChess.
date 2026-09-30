@@ -3,6 +3,7 @@ package com.pixelchess.app;
 import java.time.Duration;
 import org.junit.Test;
 import android.view.MotionEvent;
+import android.os.SystemClock;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
@@ -23,7 +24,7 @@ public class ChessViewSessionTest {
   }
   @Test public void disconnectBlocksMovesAndResumePreservesClockBudget(){
     ChessView view=new ChessView(RuntimeEnvironment.getApplication(),BoardThemes.CLASSIC,5,true,true,new Actions());
-    view.matchClock.sync(12000,15000,System.currentTimeMillis());view.applyConnectionLost();long left=view.matchClock.whiteMs();
+    view.matchClock.sync(12000,15000,SystemClock.elapsedRealtime());view.applyConnectionLost();long left=view.matchClock.whiteMs();
     ShadowSystemClock.advanceBy(Duration.ofSeconds(30));view.ticker.run();assertEquals(left,view.matchClock.whiteMs());assertFalse(view.move(6,4,4,4,"-"));
     view.restore(new ChessGame(),left,15000);assertFalse(view.paused());assertTrue(view.move(6,4,4,4,"-"));assertEquals(left,view.matchClock.whiteMs());view.clock.removeCallbacksAndMessages(null);
   }
@@ -64,6 +65,19 @@ public class ChessViewSessionTest {
     tap(view,5,5); // white Ng1-f3
     assertEquals("N",view.gameState.pieceAt(5,5));
     assertFalse(view.gameState.whiteTurn());
+    view.clock.removeCallbacksAndMessages(null);
+  }
+
+  @Test public void timeoutClearsSelectionAndStopsAnimation(){
+    ChessView view=new ChessView(RuntimeEnvironment.getApplication(),BoardThemes.CLASSIC,5,false,true,new Actions());
+    view.sr=6;view.sc=4;view.animating=true;view.capturedPiece="p";
+    long now=SystemClock.elapsedRealtime();
+    view.matchClock.sync(0,15000,now);
+    view.ticker.run();
+    assertTrue(view.gameState.gameOver());
+    assertEquals("TEMPO • PRETAS VENCEM",view.gameState.status());
+    assertEquals(-1,view.sr);assertEquals(-1,view.sc);
+    assertFalse(view.animating);assertNull(view.capturedPiece);
     view.clock.removeCallbacksAndMessages(null);
   }
 
