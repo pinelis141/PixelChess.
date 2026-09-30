@@ -2,9 +2,14 @@
 set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 export PATH="$ANDROID_HOME/platform-tools:$PATH"
-cleanup(){ timeout 5 adb emu kill >/dev/null 2>&1 || true; if [[ -n "${emulator_pid:-}" ]]; then kill "$emulator_pid" 2>/dev/null || true; fi; }
+cleanup(){
+  result=$?
+  if [[ $result != 0 ]]; then tail -n 100 "$root/build/android-emulator.log" >&2 || true; fi
+  timeout 5 adb emu kill >/dev/null 2>&1 || true
+  if [[ -n "${emulator_pid:-}" ]]; then kill "$emulator_pid" 2>/dev/null || true; fi
+}
 trap cleanup EXIT
-"$ANDROID_HOME/emulator/emulator" -avd pixelchess35 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader -memory 2048 -cores 2 > "$root/build/android-emulator.log" 2>&1 &
+"$ANDROID_HOME/emulator/emulator" -avd pixelchess35 -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -memory 2048 -cores 2 > "$root/build/android-emulator.log" 2>&1 &
 emulator_pid=$!
 timeout 180 adb wait-for-device
 booted=false
