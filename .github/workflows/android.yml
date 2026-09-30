@@ -48,6 +48,9 @@ jobs:
       - name: Verify board asset layout
         run: gradle :app:testDebugUnitTest
 
+      - name: Android static analysis
+        run: gradle :app:lintDebug
+
       - name: Build debug and release packages
         run: gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
