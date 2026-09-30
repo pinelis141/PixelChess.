@@ -33,13 +33,14 @@ public class MainActivity extends Activity {
     setContentView(box);
   }
   void chooseSkin(){
-    String[] names=new String[BoardThemes.ALL.size()]; int checked=0;
-    for(int i=0;i<names.length;i++){BoardTheme theme=BoardThemes.ALL.get(i);names[i]=theme.name;if(theme.id.equals(selectedTheme.id))checked=i;}
-    new AlertDialog.Builder(this).setTitle("SKIN DO TABULEIRO").setSingleChoiceItems(names,checked,(d,i)->{
-      selectedTheme=BoardThemes.ALL.get(i);
-      themePreferences.save(selectedTheme);
-      d.dismiss();showMenu();
-    }).setNegativeButton("CANCELAR",null).show();
+    setContentView(new ThemeSelectorView(this,BoardThemes.ALL,selectedTheme.id,new ThemeSelectorView.Listener(){
+      @Override public void onThemeSelected(BoardTheme theme){
+        selectedTheme=theme;
+        themePreferences.save(selectedTheme);
+        chooseSkin();
+      }
+      @Override public void onClose(){showMenu();}
+    }));
   }
   @Override public void onBackPressed(){ closeBluetooth(); showMenu(); }
 
