@@ -1,7 +1,9 @@
-# Produto — 0.26.3
+# Produto — 0.26.4
 
 ## Arquitetura e UX
 
+- A última jogada permanece destacada no tabuleiro, marcando origem e destino com um realce dourado discreto e diferente dos marcadores de movimento possível.
+- O destaque é parte do estado reconstruível da partida e reaparece corretamente após replay/reconexão Bluetooth.
 - O cavalo usa 360 ms para completar a trajetória em L; as demais peças continuam em 220 ms.
 - Peças pretas recebem um contorno claro de 1 pixel e baixa opacidade para separar a silhueta das casas escuras sem alterar suas cores internas.
 - O losango de movimentos legais ganhou contorno escuro externo e realce interno para permanecer visível em casas claras e escuras.
