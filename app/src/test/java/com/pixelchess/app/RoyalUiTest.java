@@ -15,11 +15,13 @@ import static org.junit.Assert.*;
 public class RoyalUiTest {
   @Test public void settingsAndThemeScreensShareTheLibrarySurfaceAndGoldCardFrames(){
     Context context=RuntimeEnvironment.getApplication();
-    SettingsView settings=new SettingsView(context,new GamePreferences(context),()->{});
+    SettingsView settings=new SettingsView(context,new GamePreferences(context),new MenuMusicController(context),new SettingsView.Listener(){
+      public void back(){} public void credits(){}
+    });
     assertTrue(settings.getBackground() instanceof RoyalLibraryDrawable);
-    View vibration=ConsolidatedMenuTest.find(settings,"Vibração nos turnos");assertNotNull(vibration);
-    assertTrue(vibration instanceof Switch);assertTrue(vibration.getBackground() instanceof RoyalPanelDrawable);
-    assertEquals(RoyalUi.dp(context,66),vibration.getLayoutParams().height);
+    View vibration=ConsolidatedMenuTest.find(settings,"VIBRAÇÃO");assertNotNull(vibration);
+    View vibrationCard=(View)vibration.getParent().getParent().getParent();
+    assertTrue(vibrationCard.getBackground() instanceof RoyalPanelDrawable);
     View back=ConsolidatedMenuTest.find(settings,"VOLTAR");assertNotNull(back);assertTrue(back.getBackground() instanceof RoyalPanelDrawable);
     ThemeSelectorView skins=new ThemeSelectorView(context,BoardThemes.ALL,BoardThemes.CLASSIC.id,new ThemeSelectorView.Listener(){
       public void onThemeSelected(BoardTheme theme){}public void onClose(){}
