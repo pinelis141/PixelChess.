@@ -9,6 +9,13 @@ on:
       - 'fix/**'
       - 'refactor/**'
       - 'integration/**'
+  pull_request:
+    branches:
+      - main
+      - 'feature/**'
+      - 'fix/**'
+      - 'refactor/**'
+      - 'integration/**'
 
 jobs:
   build:
