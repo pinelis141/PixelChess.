@@ -11,6 +11,7 @@ import android.widget.*;
 public final class MainMenuView extends FrameLayout {
   public interface Actions {
     void playLocal();
+    void playBot();
     void playBluetooth();
     void chooseSkin();
     void openSettings();
@@ -46,6 +47,7 @@ public final class MainMenuView extends FrameLayout {
 
     content.addView(section("JOGAR"),full());
     content.addView(menuButton("▶  PARTIDA LOCAL","Duas pessoas no mesmo aparelho",true,v->actions.playLocal()),buttonLp());
+    content.addView(menuButton("♟  JOGAR CONTRA BOT","Stockfish offline • Cinco dificuldades",false,v->actions.playBot()),buttonLp());
     content.addView(menuButton("⌁  MULTIPLAYER BLUETOOTH","Jogue offline com outro celular",false,v->actions.playBluetooth()),buttonLp());
 
     LinearLayout.LayoutParams sectionLp=full(); sectionLp.setMargins(0,dp(18),0,0);

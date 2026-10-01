@@ -6,3 +6,6 @@ build/
 *.iml
 *.jks
 *.keystore
+app/src/main/jniLibs/
+__pycache__/
+*.pyc
