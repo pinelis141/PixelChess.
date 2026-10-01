@@ -26,8 +26,8 @@ public class RoyalUiTest {
     });
     assertTrue(skins.getBackground() instanceof RoyalLibraryDrawable);
     View classic=ConsolidatedMenuTest.find(skins,BoardThemes.CLASSIC.name);assertNotNull(classic);
-    assertTrue(classic.getParent().getBackground() instanceof RoyalPanelDrawable);
-    assertTrue(classic.getParent().isSelected());
+    View classicCard=(View)classic.getParent();assertTrue(classicCard.getBackground() instanceof RoyalPanelDrawable);
+    assertTrue(classicCard.isSelected());
   }
   @Test public void allSelectionDialogsKeepTheirOptionsAndUseTheOrnateFrame(){
     Context context=RuntimeEnvironment.getApplication();
