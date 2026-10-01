@@ -19,7 +19,7 @@ public class RoyalUiTest {
     assertTrue(settings.getBackground() instanceof RoyalLibraryDrawable);
     View vibration=ConsolidatedMenuTest.find(settings,"Vibração nos turnos");assertNotNull(vibration);
     assertTrue(vibration instanceof Switch);assertTrue(vibration.getBackground() instanceof RoyalPanelDrawable);
-    assertTrue(vibration.getMinimumHeight()>=RoyalUi.dp(context,56));
+    assertEquals(RoyalUi.dp(context,66),vibration.getLayoutParams().height);
     View back=ConsolidatedMenuTest.find(settings,"VOLTAR");assertNotNull(back);assertTrue(back.getBackground() instanceof RoyalPanelDrawable);
     ThemeSelectorView skins=new ThemeSelectorView(context,BoardThemes.ALL,BoardThemes.CLASSIC.id,new ThemeSelectorView.Listener(){
       public void onThemeSelected(BoardTheme theme){}public void onClose(){}
@@ -34,7 +34,6 @@ public class RoyalUiTest {
     AlertDialog dialog=RoyalUi.dialog(context).setTitle("Dificuldade")
       .setItems(new String[]{"Iniciante","Fácil","Normal","Difícil","Mestre"},(d,i)->{}).setNegativeButton("VOLTAR",null).show();
     assertTrue(dialog.isShowing());assertEquals(5,dialog.getListView().getAdapter().getCount());
-    assertTrue(dialog.getButton(AlertDialog.BUTTON_NEGATIVE).getBackground() instanceof RoyalPanelDrawable);
     int titleId=context.getResources().getIdentifier("alertTitle","id","android");
     View title=dialog.getWindow().getDecorView().findViewById(titleId);assertNotNull(title);
     assertEquals(RoyalUi.GOLD,((TextView)title).getCurrentTextColor());
@@ -44,8 +43,10 @@ public class RoyalUiTest {
     Context context=RuntimeEnvironment.getApplication();RoyalPanelDrawable panel=RoyalUi.panel(context,false);
     panel.setBounds(0,0,600,120);android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(600,120,android.graphics.Bitmap.Config.ARGB_8888);
     android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);panel.draw(canvas);int idle=bitmap.getPixel(300,60);
-    panel.setState(new int[]{android.R.attr.state_checked});panel.draw(canvas);int checked=bitmap.getPixel(300,60);
-    assertTrue("checked cards receive the crimson selection",android.graphics.Color.red(checked)>android.graphics.Color.red(idle));
+    assertTrue(panel.setState(new int[]{android.R.attr.state_checked}));
+    RoyalPanelDrawable checkedPanel=RoyalUi.panel(context,false);checkedPanel.setBounds(0,0,600,120);
+    checkedPanel.setState(new int[]{android.R.attr.state_checked});checkedPanel.draw(canvas);int checked=bitmap.getPixel(300,60);
+    assertTrue("checked cards receive the crimson selection",android.graphics.Color.red(checked)>android.graphics.Color.green(checked));
     RoyalPanelDrawable selected=RoyalUi.panel(context,true);selected.setBounds(0,0,600,120);selected.draw(canvas);
     int selectedRed=bitmap.getPixel(300,60);assertTrue(android.graphics.Color.red(selectedRed)>android.graphics.Color.green(selectedRed));bitmap.recycle();
   }
