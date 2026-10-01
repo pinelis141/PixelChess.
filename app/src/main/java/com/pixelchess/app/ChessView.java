@@ -298,7 +298,7 @@ public final class ChessView extends View {
   boolean paused(){return suspended;}
   void restore(ChessGame state,long whiteMs,long blackMs){if(promotionDialog!=null){promotionDialog.dismiss();promotionDialog=null;}gameState=state;matchClock.sync(whiteMs,blackMs,SystemClock.elapsedRealtime());suspended=false;flagSent=state.gameOver();awaitingAuthority=false;animating=false;sr=sc=-1;status=state.status();invalidate();}
   void toast(String text){Toast.makeText(getContext(),text,Toast.LENGTH_LONG).show();}
-  Button button(String text){Button b=new Button(getContext());b.setText(text);return b;}
+  Button button(String text){Button b=new Button(getContext());b.setText(text);RoyalUi.button(b);return b;}
 
   void finishOnTime(boolean loserWhite){
     matchClock.flag(loserWhite);
@@ -317,9 +317,9 @@ public final class ChessView extends View {
   void vibrateTurn(){if(!gamePreferences.vibration())return;try{Vibrator v=(Vibrator)getContext().getSystemService(Context.VIBRATOR_SERVICE);if(v==null||!v.hasVibrator())return;v.vibrate(VibrationEffect.createOneShot(70,VibrationEffect.DEFAULT_AMPLITUDE));}catch(Exception ignored){}}
   void moveWithPromotionChoice(int r1,int c1,int r2,int c2){
     final boolean side=ChessGame.isWhitePiece(gameState.pieceAt(r1,c1));final String[] labels={"DAMA","TORRE","BISPO","CAVALO"},pcs={"Q","R","B","N"};
-    LinearLayout box=new LinearLayout(getContext());box.setOrientation(LinearLayout.VERTICAL);box.setPadding(32,16,32,16);
-    AlertDialog dialog=new AlertDialog.Builder(getContext()).setTitle("PROMOÇÃO").setMessage("Escolha a peça:").setView(box).setCancelable(false).create();
-    for(int i=0;i<4;i++){final int k=i;Button bt=button(labels[i]);bt.setTextColor(Color.BLACK);bt.setBackgroundColor(Color.rgb(238,238,238));LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,6,0,6);box.addView(bt,lp);bt.setOnClickListener(v->{if(suspended||gameState.gameOver()){dialog.dismiss();promotionDialog=null;return;}String z=pcs[k];if(!side)z=z.toLowerCase(Locale.ROOT);if(bluetoothGame&&!myWhite){awaitingAuthority=true;sr=sc=-1;actions.requestMove(r1,c1,r2,c2,z);}else if(move(r1,c1,r2,c2,z)&&bluetoothGame){actions.sendAuthorityMove(r1,c1,r2,c2,z);}sr=sc=-1;dialog.dismiss();promotionDialog=null;invalidate();});}
+    LinearLayout box=new LinearLayout(getContext());box.setOrientation(LinearLayout.VERTICAL);box.setPadding(32,16,32,16);box.setBackground(RoyalUi.panel(getContext(),false));
+    AlertDialog dialog=RoyalUi.dialog(getContext()).setTitle("PROMOÇÃO").setMessage("Escolha a peça:").setView(box).setCancelable(false).create();
+    for(int i=0;i<4;i++){final int k=i;Button bt=button(labels[i]);RoyalUi.button(bt);LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.setMargins(0,6,0,6);box.addView(bt,lp);bt.setOnClickListener(v->{if(suspended||gameState.gameOver()){dialog.dismiss();promotionDialog=null;return;}String z=pcs[k];if(!side)z=z.toLowerCase(Locale.ROOT);if(bluetoothGame&&!myWhite){awaitingAuthority=true;sr=sc=-1;actions.requestMove(r1,c1,r2,c2,z);}else if(move(r1,c1,r2,c2,z)&&bluetoothGame){actions.sendAuthorityMove(r1,c1,r2,c2,z);}sr=sc=-1;dialog.dismiss();promotionDialog=null;invalidate();});}
     promotionDialog=dialog;dialog.show();
   }
   void select(int r,int c){if(!humanCanPlay())return;String q=gameState.pieceAt(r,c);if(q!=null&&ChessGame.isWhitePiece(q)==gameState.whiteTurn()){sr=r;sc=c;invalidate();}}
