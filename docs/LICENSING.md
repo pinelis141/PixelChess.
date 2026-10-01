@@ -15,6 +15,7 @@ sobre obras de terceiros nem uma mudança das licenças próprias deles.
 | Som de peças de alabastro | mh2o, Freesound 351518; preview público convertido | CC0 1.0; origem e alterações em docs/PIECE_AUDIO.md |
 | The Quiet Gambit (música do menu) | Gerada com IA no Gemini, em plano pago, conforme declaração do responsável em 2026-10-01 | Fornecida para uso no PixelChess; separada da GPL do código; não declarada CC0 ou domínio público; análise dos termos abaixo |
 | Biblioteca Real — menu | Referência fornecida pelo responsável e aprovada em 2026-10-01; imagem em assets/royal_library_menu.b64, animação e moldura vetorial em Java | Mídia separada da GPL do código, conforme demais imagens do projeto; referência convertida para WebP qualidade 78 e codificada em base64, sem alteração de composição |
+| Biblioteca Real — fundo limpo das outras telas | Fundo gerado por IA em 2026-10-01, derivado visualmente da referência aprovada; assets/royal_library_clean.b64 (WebP) | Origem por IA não equivale a domínio público; asset e ferramenta registrados; fora da concessão GPL do código |
 | Imagens, sprites e cenários | Gerados com IA conforme declaração do responsável em 2026-10-01; folhas com prompt registrado | Fora da concessão de licença do código; origem por IA não equivale a domínio público; preservar referências e termos da ferramenta aplicável |
 | Dependências de teste / ferramentas Android | JUnit, Robolectric, Gradle, Android SDK/NDK | Não são relicenciadas pelo projeto; dependências de teste não são empacotadas como motor/runtime do APK |
 
