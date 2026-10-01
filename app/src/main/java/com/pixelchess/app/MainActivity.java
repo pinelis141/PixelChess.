@@ -74,24 +74,14 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   }
   void showMenu(){
     if(matchConnection!=null)matchConnection.cancel();game=null;mainMenuVisible=true;
-    LinearLayout box=new LinearLayout(this); box.setOrientation(LinearLayout.VERTICAL); box.setGravity(Gravity.CENTER); box.setPadding(40,40,40,40); box.setBackgroundColor(bg);
-    TextView logo=title("♜  PIXEL CHESS  ♞",30); box.addView(logo,new LinearLayout.LayoutParams(-1,-2));
-    TextView sub=title("\nXADREZ LOCAL\n",14); sub.setTextColor(Color.LTGRAY); box.addView(sub);
-    Button local=button("▶ Jogar no mesmo celular"); local.setOnClickListener(v->chooseTime(false)); box.addView(local,new LinearLayout.LayoutParams(-1,-2));
-    Button bt=button("⌁ Jogar via Bluetooth"); bt.setOnClickListener(v->bluetoothMenu()); box.addView(bt,new LinearLayout.LayoutParams(-1,-2));
-    Button skin=button("▣ Skin: "+selectedTheme.name); skin.setOnClickListener(v->chooseSkin()); box.addView(skin,new LinearLayout.LayoutParams(-1,-2));
-    Button settings=button("⚙ Configurações");settings.setOnClickListener(v->showSettings());box.addView(settings,new LinearLayout.LayoutParams(-1,-2));
-    TextView ver=title("\nMVP "+BuildConfig.VERSION_NAME+" • Temas",12); ver.setTextColor(Color.GRAY); box.addView(ver);
-    float den=getResources().getDisplayMetrics().density;
-    FrameLayout root=new FrameLayout(this);root.setBackgroundColor(bg);
-    box.setPadding(40,40,40,(int)(80*den));
-    root.addView(box,new FrameLayout.LayoutParams(-1,-1));
-    MusicToggleButton mute=new MusicToggleButton(this);mute.setMuted(menuMusic.isMuted());
-    FrameLayout.LayoutParams corner=new FrameLayout.LayoutParams((int)(48*den),(int)(48*den),Gravity.BOTTOM|Gravity.END);
-    corner.setMargins(0,0,(int)(16*den),(int)(16*den));
-    root.addView(mute,corner);
-    mute.setOnClickListener(v->{menuMusic.toggleMuted();mute.setMuted(menuMusic.isMuted());});
-    setContentView(root);menuMusic.setMenuVisible(true);
+    MainMenuView menu=new MainMenuView(this,BuildConfig.VERSION_NAME,selectedTheme,menuMusic.isMuted(),new MainMenuView.Actions(){
+      @Override public void playLocal(){chooseTime(false);}
+      @Override public void playBluetooth(){bluetoothMenu();}
+      @Override public void chooseSkin(){MainActivity.this.chooseSkin();}
+      @Override public void openSettings(){showSettings();}
+      @Override public void toggleMusic(){menuMusic.toggleMuted();showMenu();}
+    });
+    setContentView(menu);menuMusic.setMenuVisible(true);
   }
   void showSettings(){mainMenuVisible=false;setContentView(new SettingsView(this,gamePreferences,this::showMenu));}
   void chooseSkin(){
