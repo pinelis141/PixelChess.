@@ -1,4 +1,5 @@
 name: Build Android APK
+# Re-run full menu preview validation after the UI test type fix.
 on:
   workflow_dispatch:
   push:
