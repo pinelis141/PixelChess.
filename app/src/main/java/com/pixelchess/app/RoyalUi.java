@@ -35,7 +35,7 @@ final class RoyalUi {
     View content=window.findViewById(android.R.id.content);if(content==null)return;
     View panel=content instanceof ViewGroup&&((ViewGroup)content).getChildCount()>0?((ViewGroup)content).getChildAt(0):content;
     panel.setBackground(RoyalUi.panel(dialog.getContext(),false));panel.setPadding(dp(dialog.getContext(),10),dp(dialog.getContext(),12),dp(dialog.getContext(),10),dp(dialog.getContext(),12));
-    decorateTree(panel);
+    decorateTree(window.getDecorView());
     ListView list=dialog.getListView();if(list!=null){
       list.setDivider(new ColorDrawable(0xff6e4c2e));list.setDividerHeight(dp(dialog.getContext(),5));
       list.setSelector(RoyalUi.panel(dialog.getContext(),true));list.setDrawSelectorOnTop(false);
