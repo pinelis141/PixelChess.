@@ -29,7 +29,7 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   ThemePreferences themePreferences;
   @Override public void onCreate(Bundle b){
     super.onCreate(b);
-    matchConnection=new BluetoothMatchController(this);menuMusic=new MenuMusicController(this);gamePreferences=new GamePreferences(this);chessSounds=new ChessSounds(this);
+    matchConnection=new BluetoothMatchController(this);menuMusic=new MenuMusicController(this);gamePreferences=new GamePreferences(this);selectedMinutes=gamePreferences.defaultMinutes();chessSounds=new ChessSounds(this);
     setVolumeControlStream(android.media.AudioManager.STREAM_MUSIC);themePreferences=new ThemePreferences(getPreferences(MODE_PRIVATE));selectedTheme=themePreferences.load();
     if(!restoreLocalMatch(b))showMenu();
   }
@@ -87,25 +87,32 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
     }catch(RuntimeException invalidState){return false;}
   }
   @Override public void setContentView(View view){
-    if(menuMusic!=null)menuMusic.setMenuVisible(false);
+    if(menuMusic!=null)menuMusic.setMenuVisible(view instanceof MainMenuView||view instanceof RoyalSetupView||view instanceof SettingsView||view instanceof ThemeSelectorView||view instanceof RoyalCreditsView);
     super.setContentView(view);
   }
   void showMenu(){
     if(game!=null)game.stopBot();if(matchConnection!=null)matchConnection.cancel();game=null;mainMenuVisible=true;
     MainMenuView menu=new MainMenuView(this,BuildConfig.VERSION_NAME,selectedTheme,menuMusic.isMuted(),new MainMenuView.Actions(){
-      @Override public void playLocal(){chooseTime(false);}
-      @Override public void playBot(){chooseBotDifficulty();}
+      @Override public void playLocal(){showSetup(RoyalSetupView.Mode.LOCAL);}
+      @Override public void playBot(){showSetup(RoyalSetupView.Mode.BOT);}
       @Override public void playBluetooth(){bluetoothMenu();}
       @Override public void chooseSkin(){MainActivity.this.chooseSkin();}
       @Override public void openSettings(){showSettings();}
-      @Override public void openLicenses(){showEngineLicense();}
+      @Override public void openLicenses(){showCredits(false);}
       @Override public void toggleMusic(){menuMusic.toggleMuted();View current=findViewById(android.R.id.content);
         if(current instanceof android.view.ViewGroup){View child=((android.view.ViewGroup)current).getChildAt(0);
           if(child instanceof MainMenuView)((MainMenuView)child).setMusicMuted(menuMusic.isMuted());}}
     });
     setContentView(menu);menuMusic.setMenuVisible(true);
   }
-  void showSettings(){mainMenuVisible=false;setContentView(new SettingsView(this,gamePreferences,this::showMenu));}
+  void showSettings(){mainMenuVisible=false;setContentView(new SettingsView(this,gamePreferences,menuMusic,new SettingsView.Listener(){
+    @Override public void back(){showMenu();}
+    @Override public void credits(){showCredits(true);}
+  }));}
+  void showCredits(boolean fromSettings){mainMenuVisible=false;setContentView(new RoyalCreditsView(this,new RoyalCreditsView.Actions(){
+    @Override public void back(){if(fromSettings)showSettings();else showMenu();}
+    @Override public void fullLicenses(){showEngineLicense();}
+  }));}
   void chooseSkin(){
     mainMenuVisible=false;
     setContentView(new ThemeSelectorView(this,BoardThemes.ALL,selectedTheme.id,new ThemeSelectorView.Listener(){
@@ -137,20 +144,34 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] results){
     super.onRequestPermissionsResult(request,permissions,results);if(request==42){boolean ok=results.length>0;for(int r:results)ok&=r==PackageManager.PERMISSION_GRANTED;if(ok)bluetoothMenu();else toast("Permita o acesso ao Bluetooth para conectar os aparelhos.");}
   }
-  void chooseTime(boolean online){
-    RoyalUi.dialog(this).setTitle("Tempo por jogador").setItems(new String[]{"10 minutos","5 minutos","3 minutos"},(d,i)->{
-      selectedMinutes=i==0?10:i==1?5:3;
-      if(online)connect(true,null);else{mainMenuVisible=false;game=new ChessView(this,selectedTheme,selectedMinutes,false,true,this);setContentView(game);}
-    }).setNegativeButton("VOLTAR",null).show();
+  void showSetup(RoyalSetupView.Mode mode){
+    if(mode==RoyalSetupView.Mode.BLUETOOTH&&!btPermission())return;
+    if(mode==RoyalSetupView.Mode.BLUETOOTH){
+      BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();
+      if(adapter==null){toast("Este aparelho não possui Bluetooth");return;}
+      try{if(!adapter.isEnabled()){startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));return;}}
+      catch(SecurityException denied){toast("Autorize o acesso ao Bluetooth nas configurações.");return;}
+    }
+    mainMenuVisible=false;
+    setContentView(new RoyalSetupView(this,mode,gamePreferences,new RoyalSetupView.Actions(){
+      @Override public void back(){showMenu();}
+      @Override public void local(int minutes,boolean blackAtBottom){
+        selectedMinutes=minutes;gamePreferences.blackAtBottom(blackAtBottom);
+        if(game!=null)game.stopBot();matchConnection.cancel();
+        game=new ChessView(MainActivity.this,selectedTheme,selectedMinutes,false,true,MainActivity.this);
+        setContentView(game);
+      }
+      @Override public void bot(int minutes,BotDifficulty difficulty,int color){
+        selectedMinutes=minutes;
+        boolean humanWhite=color==0||(color==2&&new java.security.SecureRandom().nextBoolean());
+        startBotMatch(humanWhite,difficulty);
+      }
+      @Override public void host(int minutes){selectedMinutes=minutes;connect(true,null);}
+      @Override public void join(){chooseDevice();}
+      @Override public void pairDevices(){startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS));}
+    }));
   }
   ChessEngine createEngine(){return new StockfishEngine(new File(getApplicationInfo().nativeLibraryDir,"libstockfish.so").getAbsolutePath());}
-  void chooseBotDifficulty(){
-    String[] labels=new String[BotDifficulty.values().length];
-    for(int i=0;i<labels.length;i++)labels[i]=BotDifficulty.values()[i].label;
-    RoyalUi.dialog(this).setTitle("Dificuldade").setItems(labels,(d,i)->chooseBotColor(BotDifficulty.values()[i]))
-      .setNeutralButton("LICENÇAS / CRÉDITOS",(d,w)->showEngineLicense())
-      .setNegativeButton("VOLTAR",null).show();
-  }
   void showEngineLicense(){
     try{
       StringBuilder text=new StringBuilder();
@@ -167,14 +188,6 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
       RoyalUi.dialog(this).setTitle("PixelChess + Stockfish • GPL v3").setView(scroll).setPositiveButton("FECHAR",null).show();
     }catch(IOException unavailable){toast("A licença não pôde ser aberta.");}
   }
-  void chooseBotColor(BotDifficulty difficulty){
-    RoyalUi.dialog(this).setTitle("Escolher cor").setItems(new String[]{"Brancas","Pretas","Aleatória"},(d,i)->{
-      boolean white=i==0||(i==2&&new java.security.SecureRandom().nextBoolean());
-      RoyalUi.dialog(this).setTitle("Tempo por jogador").setItems(new String[]{"10 minutos","5 minutos","3 minutos"},(dialog,t)->{
-        selectedMinutes=t==0?10:t==1?5:3;startBotMatch(white,difficulty);
-      }).setNegativeButton("VOLTAR",null).show();
-    }).setNegativeButton("VOLTAR",null).show();
-  }
   void startBotMatch(boolean white,BotDifficulty difficulty){
     if(game!=null)game.stopBot();matchConnection.cancel();mainMenuVisible=false;
     game=new ChessView(this,selectedTheme,selectedMinutes,false,white,this);
@@ -186,16 +199,7 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
     RoyalUi.dialog(this).setTitle("Motor indisponível").setMessage(message)
       .setPositiveButton("VOLTAR AO MENU",(d,w)->showMenu()).setCancelable(false).show();
   }
-  void bluetoothMenu(){
-    if(!btPermission())return;BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();
-    if(adapter==null){toast("Este aparelho não possui Bluetooth");return;}
-    try{
-      if(!adapter.isEnabled()){startActivity(new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE));return;}
-    }catch(SecurityException denied){toast("A permissão Bluetooth foi removida. Autorize novamente e tente de novo.");return;}
-    RoyalUi.dialog(this).setTitle("Jogar via Bluetooth").setMessage("Use a mesma versão do PixelChess nos dois aparelhos. Quem cria escolhe o tempo.")
-      .setPositiveButton("CRIAR PARTIDA",(d,w)->chooseTime(true)).setNegativeButton("ENTRAR",(d,w)->chooseDevice())
-      .setNeutralButton("PAREAR APARELHOS",(d,w)->startActivity(new Intent(android.provider.Settings.ACTION_BLUETOOTH_SETTINGS))).show();
-  }
+  void bluetoothMenu(){showSetup(RoyalSetupView.Mode.BLUETOOTH);}
   void chooseDevice(){
     if(!btPermission())return;
     BluetoothAdapter adapter=BluetoothAdapter.getDefaultAdapter();if(adapter==null)return;
