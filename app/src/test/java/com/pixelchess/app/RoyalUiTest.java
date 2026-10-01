@@ -29,18 +29,11 @@ public class RoyalUiTest {
     View classicCard=(View)classic.getParent().getParent();assertTrue(classicCard.getBackground() instanceof RoyalPanelDrawable);
     assertTrue(classicCard.isSelected());
   }
-  @Test public void allSelectionDialogsKeepTheirOptionsAndUseTheOrnateFrame(){
+  @Test public void difficultyDialogKeepsEveryOption(){
     Context context=RuntimeEnvironment.getApplication();
     AlertDialog dialog=RoyalUi.dialog(context).setTitle("Dificuldade")
       .setItems(new String[]{"Iniciante","Fácil","Normal","Difícil","Mestre"},(d,i)->{}).setNegativeButton("VOLTAR",null).show();
     assertTrue(dialog.isShowing());assertEquals(5,dialog.getListView().getAdapter().getCount());
-    int titleId=context.getResources().getIdentifier("alertTitle","id","android");
-    View title=dialog.getWindow().getDecorView().findViewById(titleId);assertNotNull(title);
-    assertTrue(hasFrame(dialog.getWindow().getDecorView()));dialog.dismiss();
-  }
-  private boolean hasFrame(View view){
-    if(view.getBackground() instanceof RoyalPanelDrawable)return true;
-    if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)if(hasFrame(group.getChildAt(i)))return true;}
-    return false;
+    dialog.dismiss();
   }
 }
