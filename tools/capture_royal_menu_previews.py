@@ -39,7 +39,10 @@ def shot(name):
 
 deadline=time.monotonic()+60
 while True:
-    root=wait()
+    try:root=wait()
+    except (subprocess.CalledProcessError,ET.ParseError):
+        if time.monotonic()>=deadline:raise AssertionError('Timed out reading the Android menu hierarchy')
+        time.sleep(2);continue
     home_text=' '.join(n.attrib.get(k,'') for n in root.iter('node') for k in ('text','content-desc'))
     if all(label.lower() in home_text.lower() for label in ('PARTIDA LOCAL','JOGAR CONTRA BOT','MULTIPLAYER BLUETOOTH','SKINS DO TABULEIRO','CONFIGURAÇÕES')):break
     if time.monotonic()>=deadline:raise AssertionError('Timed out waiting for the complete home menu')
