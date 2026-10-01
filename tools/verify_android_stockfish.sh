@@ -20,4 +20,5 @@ done
 [[ "$booted" == true ]] || { echo 'Android emulator boot timed out'; exit 1; }
 timeout 180 adb install -r "$root/app/build/outputs/apk/debug/app-debug.apk"
 adb shell am start -n com.pixelchess.app/.MainActivity
+python3 "$root/tools/capture_royal_menu_previews.py"
 python3 "$root/tools/verify_android_stockfish.py"
