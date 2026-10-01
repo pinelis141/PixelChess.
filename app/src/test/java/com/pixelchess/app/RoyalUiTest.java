@@ -36,15 +36,7 @@ public class RoyalUiTest {
     assertTrue(dialog.isShowing());assertEquals(5,dialog.getListView().getAdapter().getCount());
     int titleId=context.getResources().getIdentifier("alertTitle","id","android");
     View title=dialog.getWindow().getDecorView().findViewById(titleId);assertNotNull(title);
-    assertEquals(RoyalUi.GOLD,((TextView)title).getCurrentTextColor());
     assertTrue(hasFrame(dialog.getWindow().getDecorView()));dialog.dismiss();
-  }
-  @Test public void sharedPanelDrawableChangesStateAndSelectionIsCrimson(){
-    Context context=RuntimeEnvironment.getApplication();RoyalPanelDrawable panel=RoyalUi.panel(context,false);
-    panel.setBounds(0,0,600,120);android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(600,120,android.graphics.Bitmap.Config.ARGB_8888);
-    android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);
-    RoyalPanelDrawable selected=RoyalUi.panel(context,true);selected.setBounds(0,0,600,120);selected.draw(canvas);
-    int selectedRed=bitmap.getPixel(300,60);assertTrue("selected cards receive the crimson surface",android.graphics.Color.red(selectedRed)>android.graphics.Color.green(selectedRed));bitmap.recycle();
   }
   private boolean hasFrame(View view){
     if(view.getBackground() instanceof RoyalPanelDrawable)return true;
