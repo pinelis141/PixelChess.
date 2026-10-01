@@ -19,6 +19,17 @@ public final class BoardThemeRenderer {
   private final TorchRenderer torches;
   private final LavaSurface frameLava,backgroundLava;
   private final ForgeLightRenderer furnace;
+  private final ForestLeafRenderer leaves;
+  private long leafPausedAt=-1,leafPausedTotal;
+  void setAnimationActive(boolean active){
+    long now=android.os.SystemClock.uptimeMillis();
+    if(!active && leafPausedAt<0)leafPausedAt=now;
+    else if(active && leafPausedAt>=0){leafPausedTotal+=now-leafPausedAt;leafPausedAt=-1;}
+  }
+  private double leafSeconds(){
+    long now=leafPausedAt>=0?leafPausedAt:android.os.SystemClock.uptimeMillis();
+    return (now-epoch-leafPausedTotal)*.001*theme.glow.speed;
+  }
   private final long epoch=android.os.SystemClock.uptimeMillis();
   private double effectSeconds(){return (android.os.SystemClock.uptimeMillis()-epoch)*.001*theme.glow.speed;}
   private final SceneGeometry geometry=new SceneGeometry();
@@ -52,6 +63,8 @@ public final class BoardThemeRenderer {
     furnace=new ForgeLightRenderer(theme);
     effects=new ThemeEffectRenderer(theme.glow);
     torches=new TorchRenderer(theme);
+    leaves=effectsEnabled && theme.glow.effect==BoardTheme.Effect.FIREFLIES
+        ?new ForestLeafRenderer(resources):null;
     bitmapPaint.setFilterBitmap(false);
     bitmapPaint.setAntiAlias(false);
     bitmapPaint.setDither(false);
@@ -114,6 +127,7 @@ public final class BoardThemeRenderer {
     rect.set((width-w)/2f,(height-h)/2f,(width+w)/2f,(height+h)/2f);
     canvas.drawBitmap(background,null,rect,bitmapPaint);
     canvas.drawColor(theme.backgroundShade);
+    if(leaves!=null)leaves.draw(canvas,geometry,width,density,leafSeconds());
   }
 
   private void drawSceneRegion(Canvas canvas,int sourceTop,int sourceBottom,float top,float bottom,int width) {

@@ -37,8 +37,8 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
   TextView title(String s,int sp){ TextView v=new TextView(this); v.setText(s); v.setTextColor(cream); v.setTextSize(sp); v.setGravity(Gravity.CENTER); v.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return v; }
   Button button(String s){ Button b=new Button(this); b.setText(s); b.setTextSize(18); b.setAllCaps(false); b.setTypeface(Typeface.MONOSPACE,Typeface.BOLD); return b; }
 
-  @Override protected void onResume(){super.onResume();foreground=true;menuMusic.setForeground(true);chessSounds.setForeground(true);if(game!=null&&game.botGame())game.resumeBot();}
-  @Override protected void onPause(){if(game!=null&&game.botGame()){game.settleBotClock();game.pauseBot();}foreground=false;menuMusic.setForeground(false);chessSounds.setForeground(false);super.onPause();}
+  @Override protected void onResume(){super.onResume();foreground=true;menuMusic.setForeground(true);chessSounds.setForeground(true);if(game!=null){game.setSceneryActive(true);if(game.botGame())game.resumeBot();}}
+  @Override protected void onPause(){if(game!=null){game.setSceneryActive(false);if(game.botGame()){game.settleBotClock();game.pauseBot();}}foreground=false;menuMusic.setForeground(false);chessSounds.setForeground(false);super.onPause();}
   @Override protected void onDestroy(){if(game!=null)game.stopBot();matchConnection.cancel();if(connectionDialog!=null)connectionDialog.dismiss();menuMusic.release();chessSounds.release();super.onDestroy();}
   @Override protected void onSaveInstanceState(Bundle out){
     super.onSaveInstanceState(out);
