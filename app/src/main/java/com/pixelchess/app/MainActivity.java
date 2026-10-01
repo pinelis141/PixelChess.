@@ -99,7 +99,9 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
       @Override public void chooseSkin(){MainActivity.this.chooseSkin();}
       @Override public void openSettings(){showSettings();}
       @Override public void openLicenses(){showEngineLicense();}
-      @Override public void toggleMusic(){menuMusic.toggleMuted();showMenu();}
+      @Override public void toggleMusic(){menuMusic.toggleMuted();View current=findViewById(android.R.id.content);
+        if(current instanceof android.view.ViewGroup){View child=((android.view.ViewGroup)current).getChildAt(0);
+          if(child instanceof MainMenuView)((MainMenuView)child).setMusicMuted(menuMusic.isMuted());}}
     });
     setContentView(menu);menuMusic.setMenuVisible(true);
   }
