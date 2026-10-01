@@ -70,9 +70,6 @@ jobs:
       - name: Build debug and release packages
         run: gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
-      - name: Capture themed menu screens on Android 35
-        run: python3 tools/capture_royal_menu_previews.py
-
       - name: Verify packaged Stockfish on Android 35
         run: |
           export ANDROID_AVD_HOME="$RUNNER_TEMP/pixelchess-avd"
