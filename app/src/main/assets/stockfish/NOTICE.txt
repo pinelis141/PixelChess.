@@ -3,8 +3,8 @@ GPL-3.0-or-later; full license: COPYING.txt.
 Official source revision edb0d9db6731067ec50ce619ff372b463bc4dd5d (sf_19).
 No modifications to Stockfish source. Compiled with NDK 28.2.13676358, API 26.
 Exact engine source: https://github.com/official-stockfish/Stockfish/tree/edb0d9db6731067ec50ce619ff372b463bc4dd5d
-Build recipe: https://github.com/pinelis141/PixelChess./blob/feature/stockfish-bot/tools/build_stockfish.sh
+Build recipe: https://github.com/pinelis141/PixelChess./blob/main/tools/build_stockfish.sh
 Corresponding-source archive (including NNUE and build settings) accompanies review binaries:
 https://github.com/pinelis141/PixelChess./actions
 Distribution/licensing details: docs/STOCKFISH.md in the PixelChess repository.
-Stockfish is a separate UCI process. PixelChess license has not been changed.
+Stockfish is a separate UCI process. PixelChess original code is GPL-3.0-or-later; see pixelchess/NOTICE.txt.

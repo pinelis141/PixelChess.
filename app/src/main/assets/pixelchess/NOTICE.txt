@@ -1,0 +1,19 @@
+PixelChess — código-fonte livre
+Copyright (C) 2026 PixelChess contributors.
+SPDX-License-Identifier: GPL-3.0-or-later
+
+O código original do PixelChess pode ser redistribuído e modificado sob a GNU
+General Public License, versão 3 ou, à sua escolha, qualquer versão posterior.
+Distribuído sem garantia. O texto completo da GPL v3 é apresentado abaixo e
+está no arquivo LICENSE do repositório.
+Código e histórico de contribuições: https://github.com/pinelis141/PixelChess.
+Instruções de compilação e distribuição: README.md e docs/LICENSING.md.
+
+Motor offline: Stockfish 19, desenvolvido pelos autores e colaboradores do
+Stockfish, GPL-3.0-or-later. O código upstream não foi modificado. Seus avisos,
+autores e código-fonte correspondente estão identificados separadamente.
+
+Som das peças: chess_move_on_alabaster.wav, mh2o/Freesound, CC0 1.0 Universal.
+Música do menu: The Quiet Gambit, fornecida e aprovada pelo responsável pelo projeto.
+A GPL do código não atribui automaticamente licença à música e às imagens.
+As licenças próprias de terceiros e seus créditos permanecem válidos.

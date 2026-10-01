@@ -120,8 +120,8 @@ strength and pacing still need another phone playtest.
 
 Stockfish is GPL-3.0-or-later. Its original full GPL v3 text and AUTHORS are included inside the
 APK under assets/stockfish, plus a notice/source link available in the bot selection dialog.
-The integration does NOT change or assign a license to PixelChess. The base repo has no LICENSE
-file, so a public GitHub repository must not be confused with an express open-source license.
+The user authorized GPL-3.0-or-later for PixelChess original code on 2026-10-01.
+See root LICENSE/NOTICE and docs/LICENSING.md for scope and separate media rights.
 
 When distributing the engine binary, preserve copyright and license notices and supply the
 exact Corresponding Source, including modifications (none here), embedded NNUE network, build
@@ -132,12 +132,10 @@ availability for recipients and the rights to modify/redistribute under GPL. Do 
 restrictions that contradict the GPL for the engine. Review GPL section 6 installation-information
 requirements if a future distribution qualifies as a covered User Product.
 
-Separate processes communicating by UCI reduce coupling, but do NOT automatically prove that
-an APK is mere aggregation. Whether the complete application forms a combined derivative work
-is a distribution/licensing question; GPL coverage could extend to it. Review this question and
-choose an explicit compatible PixelChess license before public distribution if required. The user separately authorized main consolidation; this does not relicense PixelChess
-or publish a public release. APK artifacts are for
-review, with corresponding engine source made available alongside them.
+PixelChess original code now uses GPL-3.0-or-later, so distribution does not rely on
+the UCI process boundary as an exemption from GPL. App and engine corresponding-source
+archives accompany CI artifacts. No public release is created by this change; media
+rights and durable source hosting must be documented before public distribution.
 
 Sources verified 2026-09-30:
 - https://stockfishchess.org/download/

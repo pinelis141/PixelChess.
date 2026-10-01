@@ -30,6 +30,9 @@ jobs:
       - name: Build official offline Stockfish and corresponding source
         run: tools/build_stockfish.sh
 
+      - name: Package exact PixelChess corresponding source
+        run: tools/package_pixelchess_source.sh
+
       - name: Configure release signing when repository secrets are available
         env:
           KEYSTORE_BASE64: ${{ secrets.PIXELCHESS_KEYSTORE_BASE64 }}
@@ -88,3 +91,8 @@ jobs:
         with:
           name: Stockfish-19-corresponding-source
           path: build/stockfish-distribution/*
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PixelChess-corresponding-source
+          path: build/pixelchess-distribution/*
