@@ -16,6 +16,7 @@ public final class MainMenuView extends FrameLayout {
     void chooseSkin();
     void openSettings();
     void toggleMusic();
+    default void openLicenses(){}
   }
 
   private final int cream=Color.rgb(239,224,188);
@@ -57,6 +58,10 @@ public final class MainMenuView extends FrameLayout {
 
     TextView footer=text("v"+version+"  •  PixelChess",11,Color.rgb(105,105,105),Typeface.NORMAL);
     LinearLayout.LayoutParams footLp=full(); footLp.setMargins(0,dp(26),0,0); content.addView(footer,footLp);
+
+    TextView licenses=text("LICENÇAS E CRÉDITOS • GPL v3",11,muted,Typeface.NORMAL);
+    licenses.setMinHeight(dp(48));licenses.setOnClickListener(v->actions.openLicenses());
+    content.addView(licenses,full());
 
     addView(scroll,new FrameLayout.LayoutParams(-1,-1));
 

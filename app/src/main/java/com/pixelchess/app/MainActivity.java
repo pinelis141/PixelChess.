@@ -98,6 +98,7 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
       @Override public void playBluetooth(){bluetoothMenu();}
       @Override public void chooseSkin(){MainActivity.this.chooseSkin();}
       @Override public void openSettings(){showSettings();}
+      @Override public void openLicenses(){showEngineLicense();}
       @Override public void toggleMusic(){menuMusic.toggleMuted();showMenu();}
     });
     setContentView(menu);menuMusic.setMenuVisible(true);
@@ -145,22 +146,23 @@ public class MainActivity extends Activity implements ChessView.Actions,Bluetoot
     String[] labels=new String[BotDifficulty.values().length];
     for(int i=0;i<labels.length;i++)labels[i]=BotDifficulty.values()[i].label;
     new AlertDialog.Builder(this).setTitle("Dificuldade").setItems(labels,(d,i)->chooseBotColor(BotDifficulty.values()[i]))
-      .setNeutralButton("STOCKFISH / LICENÇA",(d,w)->showEngineLicense())
+      .setNeutralButton("LICENÇAS / CRÉDITOS",(d,w)->showEngineLicense())
       .setNegativeButton("VOLTAR",null).show();
   }
   void showEngineLicense(){
     try{
       StringBuilder text=new StringBuilder();
-      for(String name:new String[]{"NOTICE.txt","COPYING.txt","AUTHORS"}){
-        try(BufferedReader reader=new BufferedReader(new InputStreamReader(getAssets().open("stockfish/"+name),java.nio.charset.StandardCharsets.UTF_8))){
+      for(String name:new String[]{"pixelchess/NOTICE.txt","stockfish/NOTICE.txt","stockfish/COPYING.txt","stockfish/AUTHORS","audio/NOTICE.txt"}){
+        try(BufferedReader reader=new BufferedReader(new InputStreamReader(getAssets().open(name),java.nio.charset.StandardCharsets.UTF_8))){
           String line;while((line=reader.readLine())!=null)text.append(line).append('\n');
         }
         text.append('\n');
       }
+      if(BuildConfig.SOURCE_REVISION.matches("[0-9a-f]{40}"))text.append("Código desta versão: https://github.com/pinelis141/PixelChess./tree/").append(BuildConfig.SOURCE_REVISION).append('\n');
       TextView content=title(text.toString(),12);content.setGravity(Gravity.START);content.setTextIsSelectable(true);content.setPadding(24,24,24,24);
       content.setAutoLinkMask(android.text.util.Linkify.WEB_URLS);
       ScrollView scroll=new ScrollView(this);scroll.setBackgroundColor(bg);scroll.addView(content);
-      new AlertDialog.Builder(this).setTitle("Stockfish 19 • GPL v3").setView(scroll).setPositiveButton("FECHAR",null).show();
+      new AlertDialog.Builder(this).setTitle("PixelChess + Stockfish • GPL v3").setView(scroll).setPositiveButton("FECHAR",null).show();
     }catch(IOException unavailable){toast("A licença não pôde ser aberta.");}
   }
   void chooseBotColor(BotDifficulty difficulty){

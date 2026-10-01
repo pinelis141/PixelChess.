@@ -14,7 +14,8 @@ regras, Bluetooth, relógios, recriação, UCI, perft, áudio e animações. O b
 continua obrigatório no CI, com os três ABIs e teste no Android 35; não se gera uma
 versão leve deixando o motor de fora.
 
-A licença do PixelChess não foi alterada. Os avisos GPL do Stockfish e sua fonte
+Na consolidação inicial a licença do PixelChess não foi alterada.
+Decisão posterior de 2026-10-01: código GPL-3.0-or-later; veja docs/LICENSING.md. Os avisos GPL do Stockfish e sua fonte
 correspondente continuam acompanhando os APKs de revisão. A decisão de licença da
 aplicação e disponibilidade durável das fontes precisam ser resolvidas antes de
 um lançamento público; merge no main não publica uma release nem resolve essa questão.
