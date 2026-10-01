@@ -37,7 +37,12 @@ def shot(name):
     if len(result.stdout)<100_000:raise AssertionError('Invalid/empty screenshot: '+name)
     print('Captured',path.name,len(result.stdout),'bytes',flush=True)
 
-root=wait()
+deadline=time.monotonic()+60
+while True:
+    root=wait()
+    home_text=' '.join(n.attrib.get(k,'') for n in root.iter('node') for k in ('text','content-desc'))
+    if all(label.lower() in home_text.lower() for label in ('PARTIDA LOCAL','JOGAR CONTRA BOT','MULTIPLAYER BLUETOOTH','SKINS DO TABULEIRO','CONFIGURAÇÕES')):break
+    if time.monotonic()>=deadline:raise AssertionError('Timed out waiting for the complete home menu')
 for label in ('PARTIDA LOCAL','JOGAR CONTRA BOT','MULTIPLAYER BLUETOOTH','SKINS DO TABULEIRO','CONFIGURAÇÕES'):
     if not any(label.lower() in ' '.join(n.attrib.get(k,'') for k in ('text','content-desc')).lower() for n in root.iter('node')):
         raise AssertionError('Home menu missing '+label)
