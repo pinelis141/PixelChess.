@@ -63,6 +63,9 @@ jobs:
       - name: Build debug and release packages
         run: gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
+      - name: Capture themed menu screens on Android 35
+        run: tools/capture_royal_menu_previews.py
+
       - name: Verify packaged Stockfish on Android 35
         run: |
           export ANDROID_AVD_HOME="$RUNNER_TEMP/pixelchess-avd"
@@ -71,6 +74,11 @@ jobs:
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'emulator' 'system-images;android-35;default;x86_64'
           echo no | "$ANDROID_HOME/cmdline-tools/latest/bin/avdmanager" create avd -n pixelchess35 -k 'system-images;android-35;default;x86_64' --device pixel_2
           tools/verify_android_stockfish.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PixelChess-Royal-Library-menu-previews
+          path: build/royal-menu-previews/*.png
 
       - uses: actions/upload-artifact@v4
         with:
