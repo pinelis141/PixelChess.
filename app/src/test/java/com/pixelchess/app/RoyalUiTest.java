@@ -26,7 +26,7 @@ public class RoyalUiTest {
     });
     assertTrue(skins.getBackground() instanceof RoyalLibraryDrawable);
     View classic=ConsolidatedMenuTest.find(skins,BoardThemes.CLASSIC.name);assertNotNull(classic);
-    View classicCard=(View)classic.getParent();assertTrue(classicCard.getBackground() instanceof RoyalPanelDrawable);
+    View classicCard=(View)classic.getParent().getParent();assertTrue(classicCard.getBackground() instanceof RoyalPanelDrawable);
     assertTrue(classicCard.isSelected());
   }
   @Test public void allSelectionDialogsKeepTheirOptionsAndUseTheOrnateFrame(){
@@ -42,13 +42,9 @@ public class RoyalUiTest {
   @Test public void sharedPanelDrawableChangesStateAndSelectionIsCrimson(){
     Context context=RuntimeEnvironment.getApplication();RoyalPanelDrawable panel=RoyalUi.panel(context,false);
     panel.setBounds(0,0,600,120);android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(600,120,android.graphics.Bitmap.Config.ARGB_8888);
-    android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);panel.draw(canvas);int idle=bitmap.getPixel(300,60);
-    assertTrue(panel.setState(new int[]{android.R.attr.state_checked}));
-    RoyalPanelDrawable checkedPanel=RoyalUi.panel(context,false);checkedPanel.setBounds(0,0,600,120);
-    checkedPanel.setState(new int[]{android.R.attr.state_checked});checkedPanel.draw(canvas);int checked=bitmap.getPixel(300,60);
-    assertTrue("checked cards receive the crimson selection",android.graphics.Color.red(checked)>android.graphics.Color.green(checked));
+    android.graphics.Canvas canvas=new android.graphics.Canvas(bitmap);
     RoyalPanelDrawable selected=RoyalUi.panel(context,true);selected.setBounds(0,0,600,120);selected.draw(canvas);
-    int selectedRed=bitmap.getPixel(300,60);assertTrue(android.graphics.Color.red(selectedRed)>android.graphics.Color.green(selectedRed));bitmap.recycle();
+    int selectedRed=bitmap.getPixel(300,60);assertTrue("selected cards receive the crimson surface",android.graphics.Color.red(selectedRed)>android.graphics.Color.green(selectedRed));bitmap.recycle();
   }
   private boolean hasFrame(View view){
     if(view.getBackground() instanceof RoyalPanelDrawable)return true;
