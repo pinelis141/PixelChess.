@@ -1,6 +1,7 @@
 # Offline bot integration (review branch)
 
-Base: PixelChess 0.27.1, commit 98ce908. Main is not changed by this integration.
+Initial audit base: PixelChess 0.27.1, commit 98ce908. Consolidation with the updated
+menu/icon and Forest leaves is documented in CONSOLIDATION.md.
 
 ## Architecture and audit
 
@@ -134,8 +135,8 @@ requirements if a future distribution qualifies as a covered User Product.
 Separate processes communicating by UCI reduce coupling, but do NOT automatically prove that
 an APK is mere aggregation. Whether the complete application forms a combined derivative work
 is a distribution/licensing question; GPL coverage could extend to it. Review this question and
-choose an explicit compatible PixelChess license before public distribution if required. No main
-merge, PixelChess relicensing or public release is performed by this branch. APK artifacts are for
+choose an explicit compatible PixelChess license before public distribution if required. The user separately authorized main consolidation; this does not relicense PixelChess
+or publish a public release. APK artifacts are for
 review, with corresponding engine source made available alongside them.
 
 Sources verified 2026-09-30:
