@@ -19,10 +19,10 @@ public final class ThemeSelectorView extends ScrollView {
     LinearLayout root=new LinearLayout(context);root.setOrientation(LinearLayout.VERTICAL);root.setPadding((int)(20*d),(int)(20*d),(int)(20*d),(int)(24*d));
     addView(root,new LayoutParams(-1,-2));
     Button back=button(context,"‹  VOLTAR");LinearLayout.LayoutParams backLp=new LinearLayout.LayoutParams(-1,RoyalUi.dp(context,54));root.addView(back,backLp);back.setOnClickListener(v->listener.onClose());
-    TextView heading=text(context,"BIBLIOTECA REAL",24,true);heading.setGravity(Gravity.CENTER);
+    TextView heading=text(context,"SKINS DO TABULEIRO",24,true);heading.setGravity(Gravity.CENTER);
     LinearLayout.LayoutParams headingLp=new LinearLayout.LayoutParams(-1,RoyalUi.dp(context,44));headingLp.setMargins(0,RoyalUi.dp(context,12),0,0);root.addView(heading,headingLp);
     addDivider(context,root);
-    TextView sub=text(context,"Escolha o tabuleiro para sua próxima partida.",13,false);sub.setGravity(Gravity.CENTER);
+    TextView sub=text(context,"Escolha o visual do reino",14,false);sub.setGravity(Gravity.CENTER);
     LinearLayout.LayoutParams subLp=new LinearLayout.LayoutParams(-1,-2);subLp.setMargins(0,0,0,RoyalUi.dp(context,17));root.addView(sub,subLp);
     for(BoardTheme theme:themes)root.addView(card(context,theme,theme.id.equals(selectedId),listener,d),cardLayout(context,d));
     TextView hint=text(context,"Novas skins aparecerão aqui.",12,false);hint.setGravity(Gravity.CENTER);

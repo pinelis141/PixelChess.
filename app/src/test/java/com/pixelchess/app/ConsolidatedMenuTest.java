@@ -36,21 +36,21 @@ public class ConsolidatedMenuTest {
     View music=menu.getChildAt(1);assertEquals("Desativar música",music.getContentDescription());
     assertTrue(music.performClick());assertEquals(1,calls[5]);
   }
-  @Test public void botCardOpensDifficultyColorAndTimeThenStartsNormalBotMatch(){
+  @Test public void botCardOpensRoyalScreenAndStartsNormalBotMatch(){
     ActivityController<MainActivity> controller=Robolectric.buildActivity(MainActivity.class).setup();
     try{
       MainActivity activity=controller.get();View root=activity.getWindow().getDecorView();
-      View bot=find(root,"JOGAR CONTRA BOT");assertNotNull(bot);((View)bot.getParent()).performClick();
-      AlertDialog difficulty=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-      assertEquals(5,difficulty.getListView().getAdapter().getCount());
-      difficulty.getListView().performItemClick(null,1,1);
-      AlertDialog color=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();
-      assertEquals(3,color.getListView().getAdapter().getCount());color.getListView().performItemClick(null,0,0);
-      AlertDialog time=org.robolectric.shadows.ShadowAlertDialog.getLatestAlertDialog();time.getListView().performItemClick(null,1,1);
+      View bot=find(root,"JOGAR CONTRA BOT");assertNotNull(bot);assertTrue(((View)bot.getParent()).performClick());
+      assertTrue(activity.findViewById(android.R.id.content).getRootView()!=null);
+      View difficulty=find(activity.getWindow().getDecorView(),"2");assertNotNull(difficulty);assertTrue(difficulty.performClick());
+      View side=find(activity.getWindow().getDecorView(),"BRANCAS");assertNotNull(side);assertTrue(side.performClick());
+      View time=find(activity.getWindow().getDecorView(),"5 MIN");assertNotNull(time);assertTrue(time.performClick());
+      View start=find(activity.getWindow().getDecorView(),"JOGAR AGORA");assertNotNull(start);assertTrue(start.performClick());
       assertNotNull(activity.game);assertTrue(activity.game.botGame());assertTrue(activity.game.humanWhite());
       assertEquals(com.pixelchess.app.bot.BotDifficulty.NORMAL,activity.game.botDifficulty());
       assertEquals(5,activity.selectedMinutes);
       activity.showMenu();assertNull(activity.game);assertNotNull(find(activity.getWindow().getDecorView(),"JOGAR CONTRA BOT"));
     }finally{controller.pause().stop().destroy();}
   }
+
 }

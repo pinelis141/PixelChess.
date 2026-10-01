@@ -7,6 +7,8 @@ import android.content.SharedPreferences;
 final class GamePreferences {
   private final SharedPreferences values;
   GamePreferences(Context context){values=context.getApplicationContext().getSharedPreferences("game_options",Context.MODE_PRIVATE);}
+  int defaultMinutes(){int saved=values.getInt("default_minutes",10);return saved==3||saved==5||saved==10?saved:10;}
+  void defaultMinutes(int minutes){if(minutes!=3&&minutes!=5&&minutes!=10)throw new IllegalArgumentException("Invalid clock preset");values.edit().putInt("default_minutes",minutes).apply();}
   boolean vibration(){return values.getBoolean("vibration",true);}
   void vibration(boolean enabled){values.edit().putBoolean("vibration",enabled).apply();}
   boolean effects(){return values.getBoolean("effects",true);}
