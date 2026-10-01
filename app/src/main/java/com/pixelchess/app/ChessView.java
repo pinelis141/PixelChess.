@@ -23,6 +23,8 @@ public final class ChessView extends View {
   private final int selectedMinutes;
   private final GamePreferences gamePreferences;
   private boolean suspended;
+  private boolean sceneryActive=true;
+  void setSceneryActive(boolean active){sceneryActive=active;themeRenderer.setAnimationActive(active);if(active)invalidate();}
   private boolean botGame,humanWhite=true,botPaused,botFailed;
   private BotDifficulty botDifficulty;
   private BotController botController;
@@ -135,7 +137,7 @@ public final class ChessView extends View {
     p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
     boolean flip=boardFlipped();
     themeRenderer.draw(c,left0,top,w,den0);
-    if(themeRenderer.animated() && isShown())postInvalidateDelayed(50);
+    if(sceneryActive && themeRenderer.animated() && isShown() && getWindowVisibility()==VISIBLE)postInvalidateDelayed(50);
     for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
       if(gameState.hasLastMove()&&((r==gameState.lastFromRow()&&x==gameState.lastFromCol())||(r==gameState.lastToRow()&&x==gameState.lastToCol())))
         drawLastMoveSquare(c,left0+vx*s,top+vr*s,s);
