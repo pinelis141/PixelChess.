@@ -1,5 +1,4 @@
 name: Build Android APK
-# Re-run full menu preview validation after the UI test type fix.
 on:
   workflow_dispatch:
   push:
@@ -72,7 +71,7 @@ jobs:
         run: gradle :app:assembleDebug :app:assembleRelease :app:bundleRelease
 
       - name: Capture themed menu screens on Android 35
-        run: tools/capture_royal_menu_previews.py
+        run: python3 tools/capture_royal_menu_previews.py
 
       - name: Verify packaged Stockfish on Android 35
         run: |
