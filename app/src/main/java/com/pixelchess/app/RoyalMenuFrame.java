@@ -53,6 +53,27 @@ final class RoyalMenuFrame {
     diamond(canvas,300,5,7,5);diamond(canvas,300,115,7,5);diamond(canvas,5,60,5,7);diamond(canvas,595,60,5,7);
     paint.setShader(null);paint.setAlpha(255);canvas.restoreToCount(save);
   }
+  /** Fixed-size corners keep tall dialogs from stretching the carvings. */
+  void drawPanel(Canvas c,RectF bounds,boolean selected,float density){
+    int save=c.save();c.translate(bounds.left,bounds.top);float w=bounds.width(),h=bounds.height();
+    float unit=Math.min(w/600f,density*.65f);
+    paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);paint.setShader(new LinearGradient(0,0,w,h,
+        selected?new int[]{0xff812817,0xff4b1712}:new int[]{0xff242127,0xff141317},null,Shader.TileMode.CLAMP));
+    c.drawRoundRect(0,0,w,h,5*unit,5*unit,paint);
+    paint.setShader(gold);paint.setAlpha(selected?255:205);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3*unit);
+    c.drawLine(50*unit,4*unit,w-50*unit,4*unit,paint);c.drawLine(50*unit,h-4*unit,w-50*unit,h-4*unit,paint);
+    c.drawLine(4*unit,43*unit,4*unit,h-43*unit,paint);c.drawLine(w-4*unit,43*unit,w-4*unit,h-43*unit,paint);
+    paint.setStrokeWidth(unit);c.drawLine(50*unit,11*unit,w-50*unit,11*unit,paint);
+    c.drawLine(50*unit,h-11*unit,w-50*unit,h-11*unit,paint);
+    c.drawLine(11*unit,46*unit,11*unit,h-46*unit,paint);c.drawLine(w-11*unit,46*unit,w-11*unit,h-46*unit,paint);
+    for(int corner=0;corner<4;corner++){
+      int cs=c.save();boolean right=(corner&1)!=0,bottom=(corner&2)!=0;
+      c.translate(right?w:0,bottom?h:0);c.scale(right?-unit:unit,bottom?-unit:unit);
+      corner(c,false,false);c.restoreToCount(cs);
+    }
+    paint.setStyle(Paint.Style.FILL);diamond(c,w*.5f,5*unit,7*unit,5*unit);diamond(c,w*.5f,h-5*unit,7*unit,5*unit);
+    paint.setShader(null);paint.setAlpha(255);c.restoreToCount(save);
+  }
   private void corner(Canvas c,boolean right,boolean bottom){
     int save=c.save();c.translate(right?600:0,bottom?120:0);c.scale(right?-1:1,bottom?-1:1);
     paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);c.drawPath(outer,paint);
