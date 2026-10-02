@@ -13,17 +13,17 @@ import android.widget.*;
 
 /** Shared presentation only: existing dialog adapters and callbacks remain intact. */
 final class RoyalUi {
-  static final int CREAM=0xffeee4d2,GOLD=0xffe2b96b,MUTED=0xffc5bca9,BACKGROUND=0xff171317;
+  static final int CREAM=0xfff1ece8,GOLD=0xffc5ccd2,MUTED=0xffabb0b8,BACKGROUND=0xff13151a,RED=0xfff34741;
   private RoyalUi(){}
   static int dp(Context c,int value){return Math.round(value*c.getResources().getDisplayMetrics().density);}
   static RoyalPanelDrawable panel(Context c,boolean selected){return new RoyalPanelDrawable(c.getResources().getDisplayMetrics().density,selected);}
   static void screen(View view){view.setBackground(new RoyalLibraryDrawable(view.getContext()));}
-  static void text(TextView v,int sp,boolean heading){v.setTextColor(heading?GOLD:CREAM);v.setTypeface(Typeface.SERIF,heading?Typeface.BOLD:Typeface.NORMAL);v.setTextSize(sp);}
+  static void text(TextView v,int sp,boolean heading){v.setTextColor(heading?GOLD:CREAM);v.setTypeface(Typeface.create("serif",heading?Typeface.BOLD:Typeface.NORMAL));v.setTextSize(sp);}
   static void button(Button b){
     b.setBackgroundTintList(null);b.setBackground(panel(b.getContext(),false));b.setTextColor(CREAM);b.setTypeface(Typeface.SERIF,Typeface.BOLD);
     b.setAllCaps(false);b.setTextSize(14);b.setMinHeight(dp(b.getContext(),48));b.setPadding(dp(b.getContext(),18),dp(b.getContext(),12),dp(b.getContext(),18),dp(b.getContext(),12));
   }
-  static ColorStateList tint(){return new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{GOLD,0xff675748});}
+  static ColorStateList tint(){return new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{RED,0xff505861});}
   static AlertDialog.Builder dialog(Context context){
     return new AlertDialog.Builder(context){
       @Override public AlertDialog create(){AlertDialog dialog=super.create();dialog.setOnShowListener(d->decorate(dialog));return dialog;}
@@ -37,7 +37,7 @@ final class RoyalUi {
     panel.setBackground(RoyalUi.panel(dialog.getContext(),false));panel.setPadding(dp(dialog.getContext(),10),dp(dialog.getContext(),12),dp(dialog.getContext(),10),dp(dialog.getContext(),12));
     decorateTree(window.getDecorView());
     ListView list=dialog.getListView();if(list!=null){
-      list.setDivider(new ColorDrawable(0xff6e4c2e));list.setDividerHeight(dp(dialog.getContext(),5));
+      list.setDivider(new ColorDrawable(0xff343945));list.setDividerHeight(dp(dialog.getContext(),5));
       list.setSelector(RoyalUi.panel(dialog.getContext(),true));list.setDrawSelectorOnTop(false);
       list.setOnHierarchyChangeListener(new ViewGroup.OnHierarchyChangeListener(){
         public void onChildViewAdded(View parent,View child){decorateTree(child);child.setMinimumHeight(dp(child.getContext(),56));}

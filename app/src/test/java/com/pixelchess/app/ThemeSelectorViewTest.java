@@ -22,7 +22,7 @@ public class ThemeSelectorViewTest {
       public void onClose(){}
     });
     for(BoardTheme theme:BoardThemes.ALL) assertTrue(hasText(view,theme.name));
-    assertTrue(hasText(view,"✓  SELECIONADO"));
+    assertTrue(hasText(view,"EM USO"));
     assertEquals(4,BoardThemes.ALL.size());
   }
 

@@ -4,39 +4,42 @@ import android.content.Context;
 import android.view.Gravity;
 import android.widget.*;
 
-/** Readable credits landing page; full corresponding licenses remain one tap away. */
+/** Credits follow the same steel menu kit; full legal text remains available. */
 final class RoyalCreditsView extends ScrollView {
   interface Actions {void back();void fullLicenses();}
   RoyalCreditsView(Context c,Actions actions){
-    super(c);setFillViewport(true);RoyalUi.screen(this);
+    super(c);setFillViewport(true);setVerticalScrollBarEnabled(false);RoyalUi.screen(this);
     LinearLayout body=new LinearLayout(c);body.setOrientation(LinearLayout.VERTICAL);
-    body.setGravity(Gravity.CENTER_HORIZONTAL);
-    int space=RoyalUi.dp(c,18);body.setPadding(space,RoyalUi.dp(c,30),space,RoyalUi.dp(c,48));
+    body.setGravity(Gravity.CENTER_HORIZONTAL);body.setPadding(dp(c,14),dp(c,14),dp(c,14),dp(c,35));
     addView(body,new LayoutParams(-1,-2));
-    Button back=new Button(c);back.setText("‹  VOLTAR");RoyalUi.button(back);
-    back.setOnClickListener(v->actions.back());body.addView(back,new LinearLayout.LayoutParams(-1,RoyalUi.dp(c,54)));
-    heading(c,body,"♞",43);
-    heading(c,body,"CRÉDITOS E LICENÇAS",27);
-    heading(c,body,"Projeto open source",16);
-    section(c,body,"DESENVOLVIMENTO","Pixel Chess");
-    section(c,body,"MOTOR DE XADREZ","Stockfish offline");
-    section(c,body,"ARTE E INTERFACE","Biblioteca Real e skins do Pixel Chess");
-    section(c,body,"ÁUDIO","The Quiet Gambit e efeitos de partida");
-    section(c,body,"LICENÇA","GNU GPL v3 — consulte os avisos e textos completos");
+    Button back=new Button(c);back.setText("‹  VOLTAR");RoyalUi.button(back);back.setTextSize(13);
+    back.setOnClickListener(v->actions.back());
+    LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(dp(c,104),dp(c,48));bp.gravity=Gravity.START;
+    body.addView(back,bp);
+    body.addView(new PixelMenuHeader(c,"CRÉDITOS E LICENÇAS"),lp(c,-2,14));
+    row(c,body,"DESENVOLVIMENTO","Pixel Chess");
+    row(c,body,"MOTOR DE XADREZ","Stockfish offline");
+    row(c,body,"ARTE E INTERFACE","Pixel art e aço negro");
+    row(c,body,"ÁUDIO","The Quiet Gambit e efeitos de partida");
+    row(c,body,"LICENÇA","GPL v3 — leia os avisos completos");
     Button full=new Button(c);full.setText("VER LICENÇAS COMPLETAS");RoyalUi.button(full);
-    full.setSelected(true);full.setOnClickListener(v->actions.fullLicenses());
-    LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(-1,RoyalUi.dp(c,68));fp.topMargin=RoyalUi.dp(c,18);body.addView(full,fp);
+    full.setSelected(true);full.setTextSize(15);full.setOnClickListener(v->actions.fullLicenses());
+    body.addView(full,lp(c,58,0));
   }
-  private void heading(Context c,LinearLayout parent,String value,int size){
-    TextView title=new TextView(c);title.setText(value);RoyalUi.text(title,size,true);title.setGravity(Gravity.CENTER);
-    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=RoyalUi.dp(c,17);lp.bottomMargin=RoyalUi.dp(c,12);parent.addView(title,lp);
+  private int dp(Context c,int v){return RoyalUi.dp(c,v);}
+  private LinearLayout.LayoutParams lp(Context c,int height,int bottom){
+    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(
+      Math.min(c.getResources().getDisplayMetrics().widthPixels-dp(c,32),dp(c,400)),
+      height<0?height:dp(c,height));lp.bottomMargin=dp(c,bottom);return lp;
   }
-  private void section(Context c,LinearLayout parent,String name,String detail){
-    LinearLayout item=new LinearLayout(c);item.setOrientation(LinearLayout.VERTICAL);
-    item.setPadding(RoyalUi.dp(c,21),RoyalUi.dp(c,18),RoyalUi.dp(c,21),RoyalUi.dp(c,18));
-    item.setBackground(RoyalUi.panel(c,false));
-    TextView nameView=new TextView(c);nameView.setText(name);RoyalUi.text(nameView,18,true);item.addView(nameView);
-    TextView detailView=new TextView(c);detailView.setText(detail);RoyalUi.text(detailView,14,false);item.addView(detailView);
-    LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.bottomMargin=RoyalUi.dp(c,12);parent.addView(item,lp);
+  private void row(Context c,LinearLayout body,String title,String description){
+    LinearLayout card=new LinearLayout(c);card.setOrientation(LinearLayout.VERTICAL);
+    card.setGravity(Gravity.CENTER_VERTICAL);
+    card.setPadding(dp(c,19),dp(c,6),dp(c,15),dp(c,6));
+    card.setBackground(RoyalUi.panel(c,false));
+    TextView heading=new TextView(c);heading.setText(title);RoyalUi.text(heading,15,true);
+    TextView desc=new TextView(c);desc.setText(description);RoyalUi.text(desc,13,false);
+    desc.setTextColor(RoyalUi.MUTED);card.addView(heading);card.addView(desc);
+    body.addView(card,lp(c,67,8));
   }
 }
