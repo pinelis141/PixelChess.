@@ -7,80 +7,57 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Shader;
 
-/** Resolution-independent gold carving, drawn above opaque menu panels. */
+/** Shared pixel-cut black-steel frame. All sizes are in device-independent units. */
 final class RoyalMenuFrame {
-  private final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
-  private final Path outer=new Path(),inner=new Path(),curl=new Path(),leaves=new Path();
-  private final RectF panel=new RectF(0,0,600,120);
-  private final Shader gold=new LinearGradient(0,0,0,120,
-      new int[]{0xffffefaa,0xffb77b28,0xffffdfa0,0xff9f621e,0xffefc878},
-      new float[]{0,.28f,.52f,.8f,1},Shader.TileMode.CLAMP);
-  RoyalMenuFrame(){
-    outer.moveTo(4,43);outer.lineTo(4,23);outer.quadTo(4,16,13,16);
-    outer.quadTo(16,4,28,4);outer.lineTo(50,4);
-    inner.moveTo(11,46);inner.lineTo(11,29);inner.quadTo(11,22,21,23);
-    inner.quadTo(19,12,32,12);inner.lineTo(50,12);
-    curl.moveTo(5,45);curl.cubicTo(23,49,28,35,23,31);curl.cubicTo(20,22,15,24,15,28);
-    curl.cubicTo(11,34,16,38,19,35);
-    curl.moveTo(49,5);curl.cubicTo(46,24,36,26,33,23);curl.cubicTo(23,22,24,16,29,15);
-    curl.cubicTo(35,11,39,16,36,19);
-    curl.moveTo(17,18);curl.quadTo(28,31,39,28);curl.quadTo(44,25,43,21);
-    curl.moveTo(12,47);curl.quadTo(27,55,33,44);curl.quadTo(37,39,31,36);
-    curl.moveTo(49,12);curl.quadTo(53,27,44,33);curl.quadTo(39,37,36,31);
-    leaves.moveTo(11,14);leaves.lineTo(16,6);leaves.lineTo(20,14);leaves.lineTo(16,20);leaves.close();
-    leaves.moveTo(27,30);leaves.quadTo(22,43,37,42);leaves.quadTo(36,33,27,30);leaves.close();
-    leaves.moveTo(38,13);leaves.quadTo(47,12,48,23);leaves.quadTo(40,24,38,13);leaves.close();
-  }
-  void draw(Canvas canvas,RectF bounds,boolean selected){
-    int save=canvas.save();canvas.translate(bounds.left,bounds.top);canvas.scale(bounds.width()/600,bounds.height()/120);
-    paint.setShader(null);paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);
-    paint.setColor(selected?0xff5e1c13:0xff17181d);canvas.drawRoundRect(panel,5,5,paint);
+  private final Paint p=new Paint();
+  private final Path cut=new Path();
+  void draw(Canvas c,RectF bounds,boolean selected){drawPanel(c,bounds,selected,1f);}
+  void drawPanel(Canvas c,RectF b,boolean selected,float density){
+    if(b.width()<=1||b.height()<=1)return;
+    final int save=c.save();c.clipRect(b);c.translate(b.left,b.top);
+    final float w=b.width(),h=b.height(),s=Math.max(1f,Math.min(density*1.3f,Math.min(w,h)/22f));
+    p.setAntiAlias(false);p.setStyle(Paint.Style.FILL);p.setShader(null);p.setAlpha(255);
+    // The charcoal face is translucent so the medieval room remains visible.
+    cut.reset();float k=9*s;cut.moveTo(k,0);cut.lineTo(w-k,0);
+    cut.lineTo(w,k);cut.lineTo(w,h-k);cut.lineTo(w-k,h);
+    cut.lineTo(k,h);cut.lineTo(0,h-k);cut.lineTo(0,k);cut.close();
+    p.setColor(selected?0xd05b070b:0xd51a1d24);c.drawPath(cut,p);
+    // Angular steel bevel with dark outer edge and pixel-sharp highlights.
+    p.setShader(null);p.setColor(0xff07080d);p.setStrokeWidth(5*s);p.setStyle(Paint.Style.STROKE);
+    c.drawPath(cut,p);
+    p.setColor(0xff7c848e);p.setStrokeWidth(2*s);c.drawPath(cut,p);
+    p.setColor(selected?0xfffb3936:0xff39414d);p.setStrokeWidth(s);
+    c.drawRect(12*s,5*s,w-12*s,6*s,p);
+    c.drawRect(12*s,h-6*s,w-12*s,h-5*s,p);
+    p.setStyle(Paint.Style.FILL);
+    // Forged-metal corner tabs; intentionally squared for pixel-art coherence.
+    corners(c,w,h,s);
     if(selected){
-      paint.setShader(new LinearGradient(0,0,600,120,new int[]{0xff8b2b12,0xff551b13,0xff3d1010},null,Shader.TileMode.CLAMP));
-      canvas.drawRoundRect(panel,5,5,paint);
+      p.setColor(0x88d82424);
+      c.drawRect(17*s,8*s,w-17*s,10*s,p);
+      c.drawRect(17*s,h-10*s,w-17*s,h-8*s,p);
     }
-    paint.setShader(gold);paint.setAlpha(selected?255:175);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);
-    canvas.drawLine(48,4,552,4,paint);canvas.drawLine(48,116,552,116,paint);
-    canvas.drawLine(4,43,4,77,paint);canvas.drawLine(596,43,596,77,paint);
-    paint.setStrokeWidth(1);canvas.drawLine(48,11,552,11,paint);canvas.drawLine(48,109,552,109,paint);
-    canvas.drawLine(11,46,11,74,paint);canvas.drawLine(589,46,589,74,paint);
-    corner(canvas,false,false);corner(canvas,true,false);corner(canvas,false,true);corner(canvas,true,true);
-    paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(1.2f);
-    Path flourish=new Path();flourish.moveTo(245,4);flourish.quadTo(264,13,277,4);
-    flourish.moveTo(323,4);flourish.quadTo(336,13,355,4);flourish.moveTo(245,116);
-    flourish.quadTo(264,107,277,116);flourish.moveTo(323,116);flourish.quadTo(336,107,355,116);
-    canvas.drawPath(flourish,paint);paint.setStyle(Paint.Style.FILL);
-    diamond(canvas,300,5,7,5);diamond(canvas,300,115,7,5);diamond(canvas,5,60,5,7);diamond(canvas,595,60,5,7);
-    paint.setShader(null);paint.setAlpha(255);canvas.restoreToCount(save);
+    ruby(c,w*.5f,2*s,4.5f*s,selected);
+    ruby(c,w*.5f,h-2*s,4.5f*s,selected);
+    p.setShader(null);p.setAlpha(255);c.restoreToCount(save);
   }
-  /** Fixed-size corners keep tall dialogs from stretching the carvings. */
-  void drawPanel(Canvas c,RectF bounds,boolean selected,float density){
-    int save=c.save();c.translate(bounds.left,bounds.top);float w=bounds.width(),h=bounds.height();
-    float unit=Math.min(w/600f,density*.65f);
-    paint.setStyle(Paint.Style.FILL);paint.setAlpha(255);paint.setShader(new LinearGradient(0,0,w,h,
-        selected?new int[]{0xff812817,0xff4b1712}:new int[]{0xff242127,0xff141317},null,Shader.TileMode.CLAMP));
-    c.drawRoundRect(0,0,w,h,5*unit,5*unit,paint);
-    paint.setShader(gold);paint.setAlpha(selected?255:205);paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3*unit);
-    c.drawLine(50*unit,4*unit,w-50*unit,4*unit,paint);c.drawLine(50*unit,h-4*unit,w-50*unit,h-4*unit,paint);
-    c.drawLine(4*unit,43*unit,4*unit,h-43*unit,paint);c.drawLine(w-4*unit,43*unit,w-4*unit,h-43*unit,paint);
-    paint.setStrokeWidth(unit);c.drawLine(50*unit,11*unit,w-50*unit,11*unit,paint);
-    c.drawLine(50*unit,h-11*unit,w-50*unit,h-11*unit,paint);
-    c.drawLine(11*unit,46*unit,11*unit,h-46*unit,paint);c.drawLine(w-11*unit,46*unit,w-11*unit,h-46*unit,paint);
-    for(int corner=0;corner<4;corner++){
-      int cs=c.save();boolean right=(corner&1)!=0,bottom=(corner&2)!=0;
-      c.translate(right?w:0,bottom?h:0);c.scale(right?-unit:unit,bottom?-unit:unit);
-      corner(c,false,false);c.restoreToCount(cs);
+  private void corners(Canvas c,float w,float h,float s){
+    p.setStyle(Paint.Style.FILL);
+    for(int i=0;i<4;i++){
+      int save=c.save();c.translate((i&1)!=0?w:0,(i&2)!=0?h:0);
+      c.scale((i&1)!=0?-1:1,(i&2)!=0?-1:1);
+      p.setColor(0xff11151c);c.drawRect(3*s,3*s,13*s,6*s,p);c.drawRect(3*s,6*s,7*s,13*s,p);
+      p.setColor(0xffa8adb3);c.drawRect(6*s,2*s,12*s,3*s,p);c.drawRect(2*s,6*s,3*s,12*s,p);
+      p.setColor(0xffd92a31);c.drawRect(6*s,6*s,9*s,9*s,p);
+      p.setColor(0xffff5b51);c.drawRect(6*s,6*s,7*s,7*s,p);
+      c.restoreToCount(save);
     }
-    paint.setStyle(Paint.Style.FILL);diamond(c,w*.5f,5*unit,7*unit,5*unit);diamond(c,w*.5f,h-5*unit,7*unit,5*unit);
-    paint.setShader(null);paint.setAlpha(255);c.restoreToCount(save);
   }
-  private void corner(Canvas c,boolean right,boolean bottom){
-    int save=c.save();c.translate(right?600:0,bottom?120:0);c.scale(right?-1:1,bottom?-1:1);
-    paint.setStyle(Paint.Style.STROKE);paint.setStrokeWidth(3);c.drawPath(outer,paint);
-    paint.setStrokeWidth(1.7f);c.drawPath(inner,paint);c.drawPath(curl,paint);
-    paint.setStyle(Paint.Style.FILL);c.drawPath(leaves,paint);c.drawCircle(16,16,2.1f,paint);c.restoreToCount(save);
-  }
-  private void diamond(Canvas c,float x,float y,float w,float h){
-    Path p=new Path();p.moveTo(x,y-h);p.lineTo(x+w,y);p.lineTo(x,y+h);p.lineTo(x-w,y);p.close();c.drawPath(p,paint);
+  private void ruby(Canvas c,float x,float y,float r,boolean glow){
+    if(r<=0)return;
+    p.setStyle(Paint.Style.FILL);
+    cut.reset();cut.moveTo(x,y-r);cut.lineTo(x+r,y);cut.lineTo(x,y+r);cut.lineTo(x-r,y);cut.close();
+    p.setColor(glow?0xffff4e4e:0xff96262d);c.drawPath(cut,p);
+    p.setColor(glow?0xffffb99d:0xffc35451);c.drawRect(x-1,y-1,x+1,y+1,p);
   }
 }
