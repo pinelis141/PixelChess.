@@ -21,6 +21,8 @@ Créditos e GPL estão acessíveis em **Licenças e créditos**, no menu do apli
 
 ## Compilar
 
+> O workflow do GitHub Actions compila e valida automaticamente cada atualização do `main`.
+
 Linux, JDK 17, Gradle 8.7 e Android SDK:
 
 ```sh
