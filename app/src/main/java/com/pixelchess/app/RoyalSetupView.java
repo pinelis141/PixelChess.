@@ -97,7 +97,9 @@ final class RoyalSetupView extends ScrollView {
         tile.addView(icon,new LinearLayout.LayoutParams(-1,dp(25)));
       }
       TextView value=label(labels[i],labels.length==5?19:labels[i].length()>10?12:15,true);
-      value.setMaxLines(2);tile.addView(value,new LinearLayout.LayoutParams(-1,-2));
+      value.setMaxLines(2);value.setClickable(true);value.setFocusable(true);
+      value.setOnClickListener(v->tile.performClick());
+      tile.addView(value,new LinearLayout.LayoutParams(-1,-2));
       LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(0,-1,1f);
       if(i>0)lp.leftMargin=dp(5);row.addView(tile,lp);tiles.add(tile);
       tile.setOnClickListener(v->{
