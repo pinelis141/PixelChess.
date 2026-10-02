@@ -62,7 +62,7 @@ final class RoyalSetupView extends ScrollView {
     LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(dp(104),dp(48));bp.gravity=Gravity.START;
     body.addView(back,bp);
     String heading=mode==Mode.LOCAL?"PARTIDA LOCAL":mode==Mode.BOT?"JOGAR CONTRA BOT":"MULTIPLAYER BLUETOOTH";
-    LinearLayout.LayoutParams hp=centered(-2,dp(12)/dp(1)); // 12 dp below section banner
+    LinearLayout.LayoutParams hp=centered(-2,12); // 12 dp below section banner
     hp.topMargin=0;body.addView(new PixelMenuHeader(context,heading),hp);
   }
   private LinearLayout section(String title){
@@ -71,7 +71,7 @@ final class RoyalSetupView extends ScrollView {
     card.setBackground(RoyalUi.panel(context,false));
     card.setPadding(dp(13),dp(8),dp(13),dp(11));
     TextView heading=label(title,17,true);card.addView(heading,new LinearLayout.LayoutParams(-1,dp(27)));
-    body.addView(card,centered(-2,dp(11)/dp(1)));
+    body.addView(card,centered(-2,11));
     return card;
   }
   private void choices(LinearLayout parent,String[] labels,int initial,int height,IntConsumer save,boolean clock,boolean piece){
