@@ -38,7 +38,7 @@ public final class ThemeSelectorView extends ScrollView {
       row.addView(preview,new LinearLayout.LayoutParams(dp(c,111),dp(c,86)));
       LinearLayout copy=new LinearLayout(c);copy.setOrientation(LinearLayout.VERTICAL);
       copy.setGravity(Gravity.CENTER_VERTICAL);copy.setPadding(dp(c,11),0,0,0);
-      TextView name=new TextView(c);name.setText(theme.name.toUpperCase(java.util.Locale.ROOT));
+      TextView name=new TextView(c);name.setText(theme.name);name.setAllCaps(true);
       RoyalUi.text(name,theme.name.length()>16?13:15,true);name.setTextColor(RoyalUi.CREAM);
       copy.addView(name,new LinearLayout.LayoutParams(-1,-2));
       TextView state=new TextView(c);states[i]=state;
