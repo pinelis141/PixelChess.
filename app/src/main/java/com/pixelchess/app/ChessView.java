@@ -109,7 +109,7 @@ public final class ChessView extends View {
   boolean flagSent=false,awaitingAuthority=false; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece,capturedPiece; long animStart; final long ANIM_MS=220,KNIGHT_ANIM_MS=360; Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
   ChessView(Context c,BoardTheme selectedTheme,int minutes,boolean online,boolean white,Actions actions){
     super(c);this.actions=actions;selectedMinutes=minutes;bluetoothGame=online;myWhite=white;gamePreferences=new GamePreferences(c);pieceSkin=PieceSkin.load(c);
-    customPieces=pieceSkin==PieceSkin.CLASSIC?null:new PixelPieceArt(pieceSkin);
+    customPieces=pieceSkin==PieceSkin.CLASSIC?null:new PixelPieceArt(c,pieceSkin);
     p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD));
     spritePaint.setAntiAlias(false);spritePaint.setFilterBitmap(false);spritePaint.setDither(false);
     themeRenderer=new BoardThemeRenderer(getResources(),selectedTheme,gamePreferences.effects());
@@ -140,7 +140,7 @@ public final class ChessView extends View {
     p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
     boolean flip=boardFlipped();
     themeRenderer.draw(c,left0,top,w,den0);
-    if(sceneryActive && isShown() && getWindowVisibility()==VISIBLE && (themeRenderer.animated()||pieceSkin==PieceSkin.GUARDIANS))postInvalidateDelayed(50);
+    if(sceneryActive && isShown() && getWindowVisibility()==VISIBLE && (themeRenderer.animated()||customPieces!=null))postInvalidateDelayed(50);
     for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
       if(gameState.hasLastMove()&&((r==gameState.lastFromRow()&&x==gameState.lastFromCol())||(r==gameState.lastToRow()&&x==gameState.lastToCol())))
         drawLastMoveSquare(c,left0+vx*s,top+vr*s,s);
@@ -265,22 +265,23 @@ public final class ChessView extends View {
     // This is computed from the same board orientation used in Local, Bot and Bluetooth.
     boolean rear=PixelPieceArt.rearView(ChessGame.isWhitePiece(q),boardFlipped());
     int pose=0;
-    if(custom && pieceSkin==PieceSkin.GUARDIANS && sceneryActive && !animating){
-      // Distinct starting phases avoid the entire army breathing in perfect unison.
-      long phaseOffset=Character.toLowerCase(symbol)*5L
-        +Math.round(left/Math.max(1f,size))*7L+Math.round(top/Math.max(1f,size))*11L;
-      pose=(int)((SystemClock.uptimeMillis()/390L+phaseOffset)%PixelPieceArt.IDLE_FRAMES);
-    }else if(custom && animating && pieceSkin==PieceSkin.GUARDIANS){
-      // Movement alternates torso and arm poses while the existing trajectory runs.
-      int stage=(int)Math.min(3,Math.max(0,
-        4L*(SystemClock.elapsedRealtime()-animStart)/Math.max(1L,animationDuration())));
-      pose=new int[]{0,1,3,1}[stage];
+    if(custom&&sceneryActive){
+      if(animating){
+        // Preserve original motion path while cycling through approved character frames.
+        float progress=PieceMotion.progress(SystemClock.elapsedRealtime()-animStart,animationDuration());
+        pose=Math.min(PixelPieceArt.IDLE_FRAMES-1,(int)(progress*PixelPieceArt.IDLE_FRAMES));
+      }else{
+        long phase=Character.toLowerCase(symbol)*5L
+          +Math.round(left/Math.max(1f,size))*7L
+          +Math.round(top/Math.max(1f,size))*11L;
+        pose=(int)((SystemClock.uptimeMillis()/PixelPieceArt.FRAME_MS+phase)%PixelPieceArt.IDLE_FRAMES);
+      }
     }
     Bitmap bmp=custom?customPieces.get(symbol,rear,pose):pieceSprites.get(symbol);
     if(bmp==null){drawPixelPiece(c,q,left,top,size);return;}
     if(custom){
       float h=size*(rear?.93f:.87f);
-      float w=h*PixelPieceArt.WIDTH/PixelPieceArt.HEIGHT;
+      float w=h*(float)PixelPieceArt.WIDTH/PixelPieceArt.HEIGHT;
       RectF dst=new RectF(left+(size-w)/2f,top+size-h,left+(size+w)/2f,top+size);
       c.drawBitmap(bmp,null,dst,spritePaint);
     }else{
