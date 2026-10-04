@@ -108,7 +108,7 @@ public final class ChessView extends View {
   HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); final BoardThemeRenderer themeRenderer; final SceneGeometry boardGeometry=new SceneGeometry(); Paint spritePaint=new Paint();
   boolean flagSent=false,awaitingAuthority=false; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece,capturedPiece; long animStart; final long ANIM_MS=220,KNIGHT_ANIM_MS=360; Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
   ChessView(Context c,BoardTheme selectedTheme,int minutes,boolean online,boolean white,Actions actions){
-    super(c);this.actions=actions;selectedMinutes=minutes;bluetoothGame=online;myWhite=white;gamePreferences=new GamePreferences(c);pieceSkin=PieceSkin.load(c);
+    super(c);this.actions=actions;selectedMinutes=minutes;bluetoothGame=online;myWhite=white;gamePreferences=new GamePreferences(c);pieceSkin=PixelPieceArt.packaged(c)?PieceSkin.load(c):PieceSkin.CLASSIC;
     customPieces=pieceSkin==PieceSkin.CLASSIC?null:new PixelPieceArt(c,pieceSkin);
     p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD));
     spritePaint.setAntiAlias(false);spritePaint.setFilterBitmap(false);spritePaint.setDither(false);
