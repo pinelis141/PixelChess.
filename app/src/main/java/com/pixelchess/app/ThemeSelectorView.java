@@ -67,13 +67,15 @@ public final class ThemeSelectorView extends ScrollView {
     final PieceSkin[] choice={PieceSkin.load(c)};
     final LinearLayout[] pieceRows=new LinearLayout[PieceSkin.values().length];
     final TextView[] pieceStates=new TextView[PieceSkin.values().length];
+    final boolean artInstalled=PixelPieceArt.packaged(c);
     int position=0;
     for(PieceSkin skin:PieceSkin.values()){
+      final boolean locked=skin!=PieceSkin.CLASSIC&&!artInstalled;
       final int index=position++;
       LinearLayout row=new LinearLayout(c);pieceRows[index]=row;
       row.setOrientation(LinearLayout.HORIZONTAL);row.setGravity(Gravity.CENTER_VERTICAL);
       row.setPadding(dp(c,8),dp(c,8),dp(c,12),dp(c,8));
-      row.setBackground(RoyalUi.panel(c,false));row.setSelected(choice[0]==skin);
+      row.setBackground(RoyalUi.panel(c,false));row.setSelected(choice[0]==skin);row.setAlpha(locked?.55f:1f);
       PieceSkinPreview thumbnail=new PieceSkinPreview(c,skin);
       row.addView(thumbnail,new LinearLayout.LayoutParams(dp(c,112),dp(c,78)));
       LinearLayout copy=new LinearLayout(c);copy.setOrientation(LinearLayout.VERTICAL);
@@ -83,17 +85,17 @@ public final class ThemeSelectorView extends ScrollView {
       TextView description=new TextView(c);description.setText(skin.description);
       RoyalUi.text(description,11,false);description.setTextColor(RoyalUi.MUTED);copy.addView(description);
       TextView state=new TextView(c);pieceStates[index]=state;
-      state.setText(choice[0]==skin?"EM USO":"TOQUE PARA SELECIONAR");
+      state.setText(locked?"ASSETS PENDENTES":choice[0]==skin?"EM USO":"TOQUE PARA SELECIONAR");
       RoyalUi.text(state,10,false);state.setTextColor(choice[0]==skin?RoyalUi.RED:RoyalUi.MUTED);
       copy.addView(state);
       row.addView(copy,new LinearLayout.LayoutParams(0,-1,1f));
       row.setContentDescription(skin.label+(choice[0]==skin?", selecionada":""));
-      row.setOnClickListener(v->{
+      if(!locked)row.setOnClickListener(v->{
         choice[0]=skin;
         for(int j=0;j<pieceRows.length;j++){
           pieceRows[j].setSelected(j==index);
           pieceRows[j].setContentDescription(PieceSkin.values()[j].label+(j==index?", selecionada":""));
-          pieceStates[j].setText(j==index?"SELECIONADA":PieceSkin.load(c)==PieceSkin.values()[j]?"EM USO":"TOQUE PARA SELECIONAR");
+          pieceStates[j].setText(!artInstalled&&PieceSkin.values()[j]!=PieceSkin.CLASSIC?"ASSETS PENDENTES":j==index?"SELECIONADA":PieceSkin.load(c)==PieceSkin.values()[j]?"EM USO":"TOQUE PARA SELECIONAR");
           pieceStates[j].setTextColor(j==index?RoyalUi.RED:RoyalUi.MUTED);
         }
       });
@@ -101,7 +103,7 @@ public final class ThemeSelectorView extends ScrollView {
     }
     Button applyPieces=new Button(c);applyPieces.setText("APLICAR PEÇAS");
     RoyalUi.button(applyPieces);
-    applyPieces.setOnClickListener(v->{choice[0].save(c);listener.onClose();});
+    applyPieces.setOnClickListener(v->{if(choice[0]==PieceSkin.CLASSIC||artInstalled){choice[0].save(c);listener.onClose();}});
     body.addView(applyPieces,width(c,57,0));
   }
   private FrameLayout thumbnail(Context c,BoardTheme theme){
