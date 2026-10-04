@@ -267,7 +267,9 @@ public final class ChessView extends View {
     int pose=0;
     if(custom && pieceSkin==PieceSkin.GUARDIANS && sceneryActive && !animating){
       // Distinct starting phases avoid the entire army breathing in perfect unison.
-      pose=(int)((SystemClock.uptimeMillis()/390L+Character.toLowerCase(symbol)*3L)%PixelPieceArt.IDLE_FRAMES);
+      long phaseOffset=Character.toLowerCase(symbol)*5L
+        +Math.round(left/Math.max(1f,size))*7L+Math.round(top/Math.max(1f,size))*11L;
+      pose=(int)((SystemClock.uptimeMillis()/390L+phaseOffset)%PixelPieceArt.IDLE_FRAMES);
     }else if(custom && animating && pieceSkin==PieceSkin.GUARDIANS){
       // Movement alternates torso and arm poses while the existing trajectory runs.
       int stage=(int)Math.min(3,Math.max(0,
