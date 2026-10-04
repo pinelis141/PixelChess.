@@ -50,7 +50,7 @@ final class PixelPieceArt {
     return bmp;
   }
   private static void guardian(Painter p,Palette c,char role,boolean rear,int pose){
-    int breath=pose==1?-1:0;
+    int breath=pose==1?-2:pose==3?-1:0;
     // Boots, cape, armoured torso. Near-side view reveals cloak rather than face.
     p.r(8,35,7,3,c.edge);p.r(17,35,7,3,c.edge);
     p.r(9,35,5,2,c.dark);p.r(18,35,5,2,c.dark);
