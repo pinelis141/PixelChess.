@@ -3,7 +3,7 @@ def releaseSigningReady = ['PIXELCHESS_KEYSTORE_PATH','PIXELCHESS_STORE_PASSWORD
 def sourceRevision = System.getenv('PIXELCHESS_SOURCE_REVISION') ?: System.getenv('GITHUB_SHA') ?: 'unversioned'
 if (!(sourceRevision ==~ /[0-9a-f]{40}/)) sourceRevision = 'unversioned'
 android { namespace 'com.pixelchess.app'; compileSdk 35
- defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 36; versionName '0.27.1'; buildConfigField 'String', 'SOURCE_REVISION', '"' + sourceRevision + '"' }
+ defaultConfig { applicationId 'com.pixelchess.app'; minSdk 26; targetSdk 35; versionCode 37; versionName '0.28.0'; buildConfigField 'String', 'SOURCE_REVISION', '"' + sourceRevision + '"' }
  signingConfigs { release { if (releaseSigningReady) { storeFile file(System.getenv('PIXELCHESS_KEYSTORE_PATH')); storePassword System.getenv('PIXELCHESS_STORE_PASSWORD'); keyAlias System.getenv('PIXELCHESS_KEY_ALIAS'); keyPassword System.getenv('PIXELCHESS_KEY_PASSWORD') } } }
  buildTypes { release { if (releaseSigningReady) signingConfig signingConfigs.release; minifyEnabled false } }
  packaging { jniLibs { useLegacyPackaging true } }
@@ -14,4 +14,46 @@ android { namespace 'com.pixelchess.app'; compileSdk 35
 dependencies {
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.robolectric:robolectric:4.14.1'
+}
+
+
+// Reconstruct approved original image data from tracked binary fragments for
+// IDE / on-device Gradle builds as well as CI. No Python dependency in Gradle.
+def approvedPieceFragments = fileTree(rootProject.file('art/approved_atlas_fragments')) { include 'part_*.bin' }
+def approvedPieceArchive = file('src/main/assets/approved_piece_atlases.zip')
+def restoreApprovedPieceAssets = tasks.register('restoreApprovedPieceAssets') {
+    inputs.files(approvedPieceFragments)
+    outputs.file(approvedPieceArchive)
+    doLast {
+        def parts = approvedPieceFragments.files.sort { it.name }
+        def expectedNames = (0..8).collect { String.format(java.util.Locale.US, 'part_%02d.bin', it) }
+        if (parts.size() != 9 || parts.collect { it.name } != expectedNames) {
+            throw new GradleException('Missing original approved Medieval/Forest character fragments')
+        }
+        def sha = java.security.MessageDigest.getInstance('SHA-256')
+        def archiveTmp = new File(approvedPieceArchive.parentFile, approvedPieceArchive.name + '.tmp')
+        approvedPieceArchive.parentFile.mkdirs()
+        archiveTmp.withOutputStream { stream ->
+            parts.each { fragment ->
+                fragment.withInputStream { input ->
+                    byte[] buffer = new byte[65536]
+                    int count
+                    while ((count = input.read(buffer)) != -1) {
+                        if (count > 0) { sha.update(buffer, 0, count); stream.write(buffer, 0, count) }
+                    }
+                }
+            }
+        }
+        def digest = sha.digest().encodeHex().toString()
+        if (archiveTmp.length() != 7856061L || digest != 'f2cfe45b0d0073783f47305b3b4615bd679a0afbfd1f90cf596a251cd2feec69') {
+            archiveTmp.delete()
+            throw new GradleException('Approved original sprites failed byte-for-byte SHA-256 validation')
+        }
+        if (approvedPieceArchive.exists() && !approvedPieceArchive.delete()) throw new GradleException('Could not replace sprite archive')
+        if (!archiveTmp.renameTo(approvedPieceArchive)) throw new GradleException('Could not finalize approved sprite archive')
+    }
+}
+tasks.named('preBuild').configure { dependsOn(restoreApprovedPieceAssets) }
+tasks.matching { it.name.startsWith('merge') && it.name.endsWith('Assets') }.configureEach {
+    dependsOn(restoreApprovedPieceAssets)
 }

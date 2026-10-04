@@ -61,8 +61,18 @@ jobs:
       - name: Verify approved Forest assets
         run: python3 tools/verify_forest_assets.py
 
+      - name: Restore and verify byte-exact approved character art
+        run: python3 tools/restore_approved_piece_atlases.py
+
       - name: Verify board asset layout
         run: gradle :app:testDebugUnitTest
+
+      - name: Publish original approved Medieval and Forest sprite atlases
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelChess-original-approved-piece-skins-ZIP
+          path: app/src/main/assets/approved_piece_atlases.zip
+          if-no-files-found: error
 
       - name: Android static analysis
         run: gradle :app:lintDebug
@@ -91,12 +101,12 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PixelChess-0.27.1-release-apk
+          name: PixelChess-0.28.0-release-apk
           path: app/build/outputs/apk/release/*.apk
 
       - uses: actions/upload-artifact@v4
         with:
-          name: PixelChess-0.27.1-release-aab
+          name: PixelChess-0.28.0-release-aab
           path: app/build/outputs/bundle/release/*.aab
 
       - uses: actions/upload-artifact@v4

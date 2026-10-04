@@ -9,3 +9,6 @@ build/
 app/src/main/jniLibs/
 __pycache__/
 *.pyc
+
+# Rebuilt byte-for-byte from git-tracked art fragments
+app/src/main/assets/approved_piece_atlases.zip
