@@ -104,10 +104,12 @@ public final class ChessView extends View {
   Paint p=new Paint(3); int sr=-1,sc=-1; String status="BRANCAS JOGAM";
   ChessGame gameState=new ChessGame(); final GameClock matchClock;
   final PieceSkin pieceSkin;
+  final PixelPieceArt customPieces;
   HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); final BoardThemeRenderer themeRenderer; final SceneGeometry boardGeometry=new SceneGeometry(); Paint spritePaint=new Paint();
   boolean flagSent=false,awaitingAuthority=false; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece,capturedPiece; long animStart; final long ANIM_MS=220,KNIGHT_ANIM_MS=360; Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
   ChessView(Context c,BoardTheme selectedTheme,int minutes,boolean online,boolean white,Actions actions){
     super(c);this.actions=actions;selectedMinutes=minutes;bluetoothGame=online;myWhite=white;gamePreferences=new GamePreferences(c);pieceSkin=PieceSkin.load(c);
+    customPieces=pieceSkin==PieceSkin.CLASSIC?null:new PixelPieceArt(pieceSkin);
     p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD));
     spritePaint.setAntiAlias(false);spritePaint.setFilterBitmap(false);spritePaint.setDither(false);
     themeRenderer=new BoardThemeRenderer(getResources(),selectedTheme,gamePreferences.effects());
@@ -257,27 +259,31 @@ public final class ChessView extends View {
     out.setPixels(px,0,w,0,0,w,h);return out;
   }
   void drawPieceSprite(Canvas c,String q,float left,float top,float size){
-    Bitmap bmp=pieceSprites.get(q.charAt(0));
+    char symbol=q.charAt(0);
+    boolean custom=customPieces!=null;
+    // The side nearest the player is drawn from behind; far pieces face us.
+    // This is computed from the same board orientation used in Local, Bot and Bluetooth.
+    boolean rear=ChessGame.isWhitePiece(q)!=boardFlipped();
+    int pose=0;
+    if(custom && pieceSkin==PieceSkin.GUARDIANS && sceneryActive && !animating){
+      // Distinct starting phases avoid the entire army breathing in perfect unison.
+      pose=(int)((SystemClock.uptimeMillis()/390L+Character.toLowerCase(symbol)*3L)%PixelPieceArt.IDLE_FRAMES);
+    }else if(custom && animating)pose=3; // movement shows the extended step/arm pose
+    Bitmap bmp=custom?customPieces.get(symbol,rear,pose):pieceSprites.get(symbol);
     if(bmp==null){drawPixelPiece(c,q,left,top,size);return;}
-    float pad=size*.035f;
-    float scale=Character.toLowerCase(q.charAt(0))=='n'?.90f:1f;
-    float full=size-pad*2f,draw=full*scale;
-    float dx=(full-draw)/2f;
-    float idle=0f;
-    // Characters breathe only while idle; moving pieces retain the existing move animation.
-    if(pieceSkin==PieceSkin.GUARDIANS && !animating && sceneryActive){
-      float phase=(android.os.SystemClock.uptimeMillis()%2400L)/2400f*(float)(Math.PI*2);
-      idle=(float)Math.sin(phase)*size*.013f;
+    if(custom){
+      float h=size*(rear?.93f:.87f);
+      float w=h*PixelPieceArt.WIDTH/PixelPieceArt.HEIGHT;
+      RectF dst=new RectF(left+(size-w)/2f,top+size-h,left+(size+w)/2f,top+size);
+      c.drawBitmap(bmp,null,dst,spritePaint);
+    }else{
+      float pad=size*.035f;
+      float scale=Character.toLowerCase(symbol)=='n'?.90f:1f;
+      float full=size-pad*2f,draw=full*scale;
+      float dx=(full-draw)/2f;
+      RectF dst=new RectF(left+pad+dx,top+pad+(full-draw),left+size-pad-dx,top+size-pad);
+      c.drawBitmap(bmp,null,dst,spritePaint);
     }
-    RectF dst=new RectF(left+pad+dx,top+pad+(full-draw)-idle,left+size-pad-dx,top+size-pad);
-    if(pieceSkin==PieceSkin.GUARDIANS){
-      // Warm heraldic tone; keep the original sprite silhouette and white/black contrast.
-      spritePaint.setColorFilter(new android.graphics.LightingColorFilter(0xffe9d6b1,0x0007090c));
-    }else if(pieceSkin==PieceSkin.OBSIDIAN){
-      spritePaint.setColorFilter(new android.graphics.LightingColorFilter(0xffa4b0c4,0x0009070a));
-    }
-    c.drawBitmap(bmp,null,dst,spritePaint);
-    spritePaint.setColorFilter(null);
   }
   String clockText(long ms){ms=Math.max(0,ms);long sec=ms/1000;return String.format(Locale.US,"%02d:%02d",sec/60,sec%60);}
   String square(int r,int c){return ""+(char)('a'+c)+(8-r);}
