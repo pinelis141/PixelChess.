@@ -1,27 +1,16 @@
-# Skins de peças — sprites originais
+# Pixel Chess — assets de peças originais recuperados
 
-A seleção de peças aparece na **mesma tela das skins de tabuleiro**. Ela é independente do tema e do estado de xadrez. Há três opções:
+**Não publicar novamente as peças provisórias Guardiões ou Obsidiana.** Essas foram geradas diretamente no código e não são as imagens aprovadas.
 
-- **Tradicional:** PNGs originais aprovados, sem animações novas.
-- **Guardiões:** seis personagens originais distintos (soldado com lança, guarda de torre e escudo, cavaleiro, mago, imperatriz e rei). Cada personagem existe nas cores claras e escuras, com desenho frontal e traseiro e quatro poses de animação.
-- **Obsidiana:** seis esculturas minerais distintas (obelisco, fortaleza, cabeça de cavalo, espira, coroa de rainha e coroa de rei), também em duas cores e duas perspectivas. Estas esculturas não respiram.
+As skins corretas são **Medieval** e **Floresta**. O arquivo de origem aprovado é `PixelChess_Animacoes_Personagens.zip`, arquivado na Biblioteca do projeto. Ele contém seis tipos de personagens, duas cores, frente e costas e oito quadros por combinação, totalizando 384 arquivos PNG RGBA.
 
-## Perspectiva correta
+O pacote binário preparado para inclusão exata no jogo é `PixelChess_Assets_Aprovados_Android.zip`. Este deve ser inserido SEM renomeação do conteúdo interno em:
+`app/src/main/assets/approved_piece_atlases.zip`
 
-As peças da fileira **mais próxima** da pessoa que joga são desenhadas pelas costas; as peças distantes são desenhadas de frente. Isso acompanha automaticamente a orientação efetiva do tabuleiro, incluindo jogador preto no Bluetooth, opção de orientação local e cor escolhida contra o Stockfish. O cálculo acontece apenas em `ChessView`; **nenhum campo novo é adicionado ao protocolo Bluetooth ou às regras de xadrez**.
+**SHA256 esperado:** `f2cfe45b0d0073783f47305b3b4615bd679a0afbfd1f90cf596a251cd2feec69`.
 
-## Animações
+O ZIP de Android contém oito atlas PNG com pixels idênticos aos PNGs de origem (verificação pixel a pixel na preparação do pacote), dimensões 1024×768: oito colunas de 128×128 por quadro, seis linhas para peão, torre, cavalo, bispo, rainha e rei. Quatro vistas por skin: claras_frente, claras_costas, escuras_frente e escuras_costas.
 
-Guardiões: a pose parada alterna a altura do tronco, o piscar e um leve deslocamento dos braços em quatro quadros. Peças diferentes começam em fases ligeiramente diferentes para evitar animação sincronizada. Durante deslocamentos, as poses de passo são usadas na trajetória já aprovada de 220 ms para peças comuns e 360 ms para cavalos. O app interrompe a atualização ao sair da tela.
+O `PixelPieceArt.java` extrai os PNGs do APK e usa 180 ms por quadro. O `ChessView` usa a vista de costas para o lado próximo do jogador e a frontal para o distante, respeitando a orientação nos modos Local, Bluetooth e Bot. Os movimentos do motor, o protocolo e o Stockfish não são alterados. As miniaturas do menu usam os mesmos desenhos que aparecem na partida.
 
-Obsidiana: peças esculpidas sem respiração; usam apenas a animação de deslocamento já existente. A skin Tradicional conserva seus sprites originais e comportamento anterior.
-
-## Sprites reais e exportação para artistas
-
-`PixelPieceArt.java` desenha cada sprite em **32 × 40 pixels nativos** (sem suavização) e guarda as imagens geradas na memória. Cada papel tem silhueta própria, não apenas um filtro de cores. A preferência fica em `PieceSkin` e as miniaturas de `PieceSkinPreview` mostram **as mesmas imagens usadas no tabuleiro**.
-
-`PixelPieceArtTest` testa silhuetas distintas, animações, vistas frontal/traseira e salva os arquivos PNG sem perdas em `build/piece-skin-export/`. A CI publica `PixelChess-animated-piece-skins-PNG`, com **120 PNGs individuais** (96 Guardiões + 24 Obsidiana) e duas galerias que facilitam avaliação. Essas imagens são geradas dos mesmos bitmaps do jogo e podem ser editadas por artistas para uma futura substituição por atlas externo.
-
-## Validação
-
-Os testes automatizados verificam originalidade das silhuetas por tipo/cor, duas perspectivas para todos os desenhos, alteração real de pixels nas animações, orientação do lado próximo (brancas e pretas) e seleção com confirmação no menu. A validação visual final ainda deve ser feita em aparelho físico, especialmente em casas escuras e com o tabuleiro da Floresta Ancestral.
+**ESTADO:** a parte textual da integração foi corrigida na branch `feature/animated-piece-skins`, mas o asset ZIP ainda não está no GitHub. O conector de GitHub disponível nesta conversa não permite enviar arquivos binários locais. A CI agora exige a presença do pacote e verifica seu hash antes de gerar qualquer novo APK, evitando repetir a entrega com placeholders. A versão Android 0.28.0 já gerada continua inadequada para avaliação visual; não compartilhá-la como versão com assets aprovados.
