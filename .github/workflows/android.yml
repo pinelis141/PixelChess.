@@ -61,7 +61,10 @@ jobs:
       - name: Verify approved Forest assets
         run: python3 tools/verify_forest_assets.py
 
-      - name: Restore and verify byte-exact approved character art\n        run: python3 tools/restore_approved_piece_atlases.py\n\n      - name: Verify board asset layout
+      - name: Restore and verify byte-exact approved character art
+        run: python3 tools/restore_approved_piece_atlases.py
+
+      - name: Verify board asset layout
         run: gradle :app:testDebugUnitTest
 
       - name: Publish original approved Medieval and Forest sprite atlases
