@@ -60,6 +60,37 @@ public final class ThemeSelectorView extends ScrollView {
     Button apply=new Button(c);apply.setText("APLICAR SKIN");RoyalUi.button(apply);apply.setSelected(true);
     apply.setTextSize(17);apply.setOnClickListener(v->{if(!pending.locked)listener.onThemeSelected(pending);});
     LinearLayout.LayoutParams ap=width(c,57,0);ap.topMargin=dp(c,9);body.addView(apply,ap);
+    // Piece choice lives on the same screen but is stored independently from board themes.
+    LinearLayout.LayoutParams piecesHeader=width(c,-2,12);
+    piecesHeader.topMargin=dp(c,24);
+    body.addView(new PixelMenuHeader(c,"SKINS DAS PEÇAS"),piecesHeader);
+    final PieceSkin[] choice={PieceSkin.load(c)};
+    final LinearLayout[] pieceRows=new LinearLayout[PieceSkin.values().length];
+    int position=0;
+    for(PieceSkin skin:PieceSkin.values()){
+      final int index=position++;
+      LinearLayout row=new LinearLayout(c);pieceRows[index]=row;
+      row.setOrientation(LinearLayout.VERTICAL);
+      row.setPadding(dp(c,16),dp(c,12),dp(c,16),dp(c,12));
+      row.setBackground(RoyalUi.panel(c,false));row.setSelected(choice[0]==skin);
+      TextView name=new TextView(c);name.setText(skin.label);
+      RoyalUi.text(name,15,true);name.setTextColor(RoyalUi.CREAM);row.addView(name);
+      TextView description=new TextView(c);description.setText(skin.description);
+      RoyalUi.text(description,12,false);description.setTextColor(RoyalUi.MUTED);row.addView(description);
+      row.setContentDescription(skin.label+(choice[0]==skin?", selecionada":""));
+      row.setOnClickListener(v->{
+        choice[0]=skin;
+        for(int j=0;j<pieceRows.length;j++){
+          pieceRows[j].setSelected(j==index);
+          pieceRows[j].setContentDescription(PieceSkin.values()[j].label+(j==index?", selecionada":""));
+        }
+      });
+      body.addView(row,width(c,76,9));
+    }
+    Button applyPieces=new Button(c);applyPieces.setText("APLICAR PEÇAS");
+    RoyalUi.button(applyPieces);
+    applyPieces.setOnClickListener(v->{choice[0].save(c);listener.onClose();});
+    body.addView(applyPieces,width(c,57,0));
   }
   private FrameLayout thumbnail(Context c,BoardTheme theme){
     FrameLayout box=new FrameLayout(c);box.setBackground(RoyalUi.panel(c,false));
