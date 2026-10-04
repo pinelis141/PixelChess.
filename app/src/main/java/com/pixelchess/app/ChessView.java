@@ -103,10 +103,11 @@ public final class ChessView extends View {
   private static final int bg=0xff14181c;
   Paint p=new Paint(3); int sr=-1,sc=-1; String status="BRANCAS JOGAM";
   ChessGame gameState=new ChessGame(); final GameClock matchClock;
+  final PieceSkin pieceSkin;
   HashMap<Character,Bitmap> pieceSprites=new HashMap<>(); final BoardThemeRenderer themeRenderer; final SceneGeometry boardGeometry=new SceneGeometry(); Paint spritePaint=new Paint();
   boolean flagSent=false,awaitingAuthority=false; boolean animating=false; int animR1,animC1,animR2,animC2; String animPiece,capturedPiece; long animStart; final long ANIM_MS=220,KNIGHT_ANIM_MS=360; Handler clock=new Handler(Looper.getMainLooper()); Runnable ticker;
   ChessView(Context c,BoardTheme selectedTheme,int minutes,boolean online,boolean white,Actions actions){
-    super(c);this.actions=actions;selectedMinutes=minutes;bluetoothGame=online;myWhite=white;gamePreferences=new GamePreferences(c);
+    super(c);this.actions=actions;selectedMinutes=minutes;bluetoothGame=online;myWhite=white;gamePreferences=new GamePreferences(c);pieceSkin=PieceSkin.load(c);
     p.setTypeface(Typeface.create(Typeface.MONOSPACE,Typeface.BOLD));
     spritePaint.setAntiAlias(false);spritePaint.setFilterBitmap(false);spritePaint.setDither(false);
     themeRenderer=new BoardThemeRenderer(getResources(),selectedTheme,gamePreferences.effects());
@@ -137,7 +138,7 @@ public final class ChessView extends View {
     p.setTextAlign(Paint.Align.CENTER);p.setTextSize(s*.62f);
     boolean flip=boardFlipped();
     themeRenderer.draw(c,left0,top,w,den0);
-    if(sceneryActive && themeRenderer.animated() && isShown() && getWindowVisibility()==VISIBLE)postInvalidateDelayed(50);
+    if(sceneryActive && isShown() && getWindowVisibility()==VISIBLE && (themeRenderer.animated()||pieceSkin==PieceSkin.GUARDIANS))postInvalidateDelayed(50);
     for(int vr=0;vr<8;vr++)for(int vx=0;vx<8;vx++){int r=flip?7-vr:vr,x=flip?7-vx:vx;
       if(gameState.hasLastMove()&&((r==gameState.lastFromRow()&&x==gameState.lastFromCol())||(r==gameState.lastToRow()&&x==gameState.lastToCol())))
         drawLastMoveSquare(c,left0+vx*s,top+vr*s,s);
@@ -262,8 +263,21 @@ public final class ChessView extends View {
     float scale=Character.toLowerCase(q.charAt(0))=='n'?.90f:1f;
     float full=size-pad*2f,draw=full*scale;
     float dx=(full-draw)/2f;
-    RectF dst=new RectF(left+pad+dx,top+pad+(full-draw),left+size-pad-dx,top+size-pad);
+    float idle=0f;
+    // Characters breathe only while idle; moving pieces retain the existing move animation.
+    if(pieceSkin==PieceSkin.GUARDIANS && !animating && sceneryActive){
+      float phase=(android.os.SystemClock.uptimeMillis()%2400L)/2400f*(float)(Math.PI*2);
+      idle=(float)Math.sin(phase)*size*.013f;
+    }
+    RectF dst=new RectF(left+pad+dx,top+pad+(full-draw)-idle,left+size-pad-dx,top+size-pad);
+    if(pieceSkin==PieceSkin.GUARDIANS){
+      // Warm heraldic tone; keep the original sprite silhouette and white/black contrast.
+      spritePaint.setColorFilter(new android.graphics.LightingColorFilter(0xffe9d6b1,0x0007090c));
+    }else if(pieceSkin==PieceSkin.OBSIDIAN){
+      spritePaint.setColorFilter(new android.graphics.LightingColorFilter(0xffa4b0c4,0x0009070a));
+    }
     c.drawBitmap(bmp,null,dst,spritePaint);
+    spritePaint.setColorFilter(null);
   }
   String clockText(long ms){ms=Math.max(0,ms);long sec=ms/1000;return String.format(Locale.US,"%02d:%02d",sec/60,sec%60);}
   String square(int r,int c){return ""+(char)('a'+c)+(8-r);}
