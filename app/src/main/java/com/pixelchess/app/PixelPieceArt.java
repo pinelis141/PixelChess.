@@ -39,6 +39,7 @@ final class PixelPieceArt {
     return value;
   }
   int cachedSprites(){return cache.size();}
+  static boolean rearView(boolean pieceWhite,boolean flipped){return pieceWhite!=flipped;}
 
   private Bitmap render(char role,boolean white,boolean rear,int pose){
     Bitmap bmp=Bitmap.createBitmap(WIDTH,HEIGHT,Bitmap.Config.ARGB_8888);
