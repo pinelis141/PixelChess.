@@ -61,6 +61,11 @@ jobs:
       - name: Verify approved Forest assets
         run: python3 tools/verify_forest_assets.py
 
+      - name: Require genuine approved character assets
+        run: |
+          test -s app/src/main/assets/approved_piece_atlases.zip || { echo "ERROR: Approved Medieval and Forest sprites missing. Never publish placeholders."; exit 1; }
+          echo "f2cfe45b0d0073783f47305b3b4615bd679a0afbfd1f90cf596a251cd2feec69  app/src/main/assets/approved_piece_atlases.zip" | sha256sum -c -
+
       - name: Verify board asset layout
         run: gradle :app:testDebugUnitTest
 
