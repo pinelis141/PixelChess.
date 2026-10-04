@@ -64,6 +64,15 @@ jobs:
       - name: Verify board asset layout
         run: gradle :app:testDebugUnitTest
 
+      - name: Upload original piece sprite PNGs and gallery previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelChess-animated-piece-skins-PNG
+          path: |
+            app/build/piece-skin-export/**/*.png
+            build/piece-skin-export/**/*.png
+          if-no-files-found: error
+
       - name: Android static analysis
         run: gradle :app:lintDebug
 
