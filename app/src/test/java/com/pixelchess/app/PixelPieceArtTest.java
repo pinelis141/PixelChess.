@@ -82,11 +82,17 @@ public class PixelPieceArtTest {
           int index=type*108;int top=row*112;
           paint.setColor((row+type)%2==0?0xffb6a791:0xff41494a);
           canvas.drawRect(index,top,index+108,top+112,paint);
+          paint.setColor(0xff1c242d);
+          canvas.drawRect(index,top,index+108,top+17,paint);
+          canvas.drawRect(index,top+96,index+108,top+112,paint);
           Bitmap still=art.get(piece,rear,0);
           paint.setColor(0xffe9e6dd);
           canvas.drawBitmap(still,null,
             new RectF(index+24,top+21,index+84,top+96),paint);
-          canvas.drawText(names[type].toUpperCase(),index+8,top+11,text);
+          canvas.drawText(names[type].toUpperCase(),index+8,top+12,text);
+          text.setTextSize(8);
+          canvas.drawText(labels[row],index+7,top+107,text);
+          text.setTextSize(10);
           for(int frame=0;frame<(skin==PieceSkin.GUARDIANS?4:1);frame++){
             Bitmap sprite=art.get(piece,rear,frame);
             File folder=new File(root,skin.id+"/"+(white?"white":"black")+"/"+(rear?"rear":"front"));
