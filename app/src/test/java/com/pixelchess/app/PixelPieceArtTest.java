@@ -112,4 +112,35 @@ public class PixelPieceArtTest {
     assertTrue(new File(root,"guardians-gallery.png").length()>0);
     assertTrue(new File(root,"obsidian-gallery.png").length()>0);
   }
+  @Test public void exportRealBoardPreviewsForBothSides()throws Exception{
+    android.content.Context context=org.robolectric.RuntimeEnvironment.getApplication();
+    PieceSkin original=PieceSkin.load(context);
+    GamePreferences preferences=new GamePreferences(context);
+    boolean wasBlack=preferences.blackAtBottom();
+    File root=new File("build/piece-skin-export");
+    assertTrue(root.isDirectory()||root.mkdirs());
+    try{
+      for(PieceSkin skin:new PieceSkin[]{PieceSkin.GUARDIANS,PieceSkin.OBSIDIAN}){
+        skin.save(context);
+        for(boolean blackBottom:new boolean[]{false,true}){
+          preferences.blackAtBottom(blackBottom);
+          for(BoardTheme theme:new BoardTheme[]{BoardThemes.CLASSIC,BoardThemes.FOREST}){
+            ChessView game=new ChessView(context,theme,5,false,true,new ChessViewSessionTest.Actions());
+            game.layout(0,0,393,820);
+            Bitmap frame=Bitmap.createBitmap(393,820,Bitmap.Config.ARGB_8888);
+            game.draw(new Canvas(frame));
+            File screenshot=new File(root,skin.id+"_"+theme.id+"_"+(blackBottom?"black":"white")+"_bottom.png");
+            try(FileOutputStream stream=new FileOutputStream(screenshot)){
+              assertTrue(frame.compress(Bitmap.CompressFormat.PNG,100,stream));
+            }
+            assertTrue(screenshot.length()>0);
+            game.clock.removeCallbacksAndMessages(null);
+          }
+        }
+      }
+    }finally{
+      original.save(context);preferences.blackAtBottom(wasBlack);
+    }
+  }
+
 }
