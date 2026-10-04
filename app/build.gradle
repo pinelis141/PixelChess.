@@ -16,7 +16,8 @@ dependencies {
  testImplementation 'org.robolectric:robolectric:4.14.1'
 }
 
-\n// Reconstruct approved original image data from tracked binary fragments for
+
+// Reconstruct approved original image data from tracked binary fragments for
 // IDE / on-device Gradle builds as well as CI. No Python dependency in Gradle.
 def approvedPieceFragments = fileTree(rootProject.file('art/approved_atlas_fragments')) { include 'part_*.bin' }
 def approvedPieceArchive = file('src/main/assets/approved_piece_atlases.zip')
