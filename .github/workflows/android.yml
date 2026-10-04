@@ -61,21 +61,14 @@ jobs:
       - name: Verify approved Forest assets
         run: python3 tools/verify_forest_assets.py
 
-      - name: Require genuine approved character assets
-        run: |
-          test -s app/src/main/assets/approved_piece_atlases.zip || { echo "ERROR: Approved Medieval and Forest sprites missing. Never publish placeholders."; exit 1; }
-          echo "f2cfe45b0d0073783f47305b3b4615bd679a0afbfd1f90cf596a251cd2feec69  app/src/main/assets/approved_piece_atlases.zip" | sha256sum -c -
-
-      - name: Verify board asset layout
+      - name: Restore and verify byte-exact approved character art\n        run: python3 tools/restore_approved_piece_atlases.py\n\n      - name: Verify board asset layout
         run: gradle :app:testDebugUnitTest
 
-      - name: Upload original piece sprite PNGs and gallery previews
+      - name: Publish original approved Medieval and Forest sprite atlases
         uses: actions/upload-artifact@v4
         with:
-          name: PixelChess-animated-piece-skins-PNG
-          path: |
-            app/build/piece-skin-export/**/*.png
-            build/piece-skin-export/**/*.png
+          name: PixelChess-original-approved-piece-skins-ZIP
+          path: app/src/main/assets/approved_piece_atlases.zip
           if-no-files-found: error
 
       - name: Android static analysis

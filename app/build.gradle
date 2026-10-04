@@ -15,3 +15,44 @@ dependencies {
  testImplementation 'junit:junit:4.13.2'
  testImplementation 'org.robolectric:robolectric:4.14.1'
 }
+
+\n// Reconstruct approved original image data from tracked binary fragments for
+// IDE / on-device Gradle builds as well as CI. No Python dependency in Gradle.
+def approvedPieceFragments = fileTree(rootProject.file('art/approved_atlas_fragments')) { include 'part_*.bin' }
+def approvedPieceArchive = file('src/main/assets/approved_piece_atlases.zip')
+def restoreApprovedPieceAssets = tasks.register('restoreApprovedPieceAssets') {
+    inputs.files(approvedPieceFragments)
+    outputs.file(approvedPieceArchive)
+    doLast {
+        def parts = approvedPieceFragments.files.sort { it.name }
+        def expectedNames = (0..8).collect { String.format(java.util.Locale.US, 'part_%02d.bin', it) }
+        if (parts.size() != 9 || parts.collect { it.name } != expectedNames) {
+            throw new GradleException('Missing original approved Medieval/Forest character fragments')
+        }
+        def sha = java.security.MessageDigest.getInstance('SHA-256')
+        def archiveTmp = new File(approvedPieceArchive.parentFile, approvedPieceArchive.name + '.tmp')
+        approvedPieceArchive.parentFile.mkdirs()
+        archiveTmp.withOutputStream { stream ->
+            parts.each { fragment ->
+                fragment.withInputStream { input ->
+                    byte[] buffer = new byte[65536]
+                    int count
+                    while ((count = input.read(buffer)) != -1) {
+                        if (count > 0) { sha.update(buffer, 0, count); stream.write(buffer, 0, count) }
+                    }
+                }
+            }
+        }
+        def digest = sha.digest().encodeHex().toString()
+        if (archiveTmp.length() != 7856061L || digest != 'f2cfe45b0d0073783f47305b3b4615bd679a0afbfd1f90cf596a251cd2feec69') {
+            archiveTmp.delete()
+            throw new GradleException('Approved original sprites failed byte-for-byte SHA-256 validation')
+        }
+        if (approvedPieceArchive.exists() && !approvedPieceArchive.delete()) throw new GradleException('Could not replace sprite archive')
+        if (!archiveTmp.renameTo(approvedPieceArchive)) throw new GradleException('Could not finalize approved sprite archive')
+    }
+}
+tasks.named('preBuild').configure { dependsOn(restoreApprovedPieceAssets) }
+tasks.matching { it.name.startsWith('merge') && it.name.endsWith('Assets') }.configureEach {
+    dependsOn(restoreApprovedPieceAssets)
+}
