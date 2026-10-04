@@ -17,13 +17,18 @@ final class PieceSkinPreview extends View {
   private final int[] original={R.drawable.w_pawn,R.drawable.w_knight,R.drawable.b_queen,R.drawable.b_king};
   private final Bitmap[] classic=new Bitmap[4];
   PieceSkinPreview(Context c,PieceSkin skin){
-    super(c);this.skin=skin;art=skin==PieceSkin.CLASSIC?null:new PixelPieceArt(skin);
+    super(c);this.skin=skin;art=skin==PieceSkin.CLASSIC||!PixelPieceArt.packaged(c)?null:new PixelPieceArt(c,skin);
     paint.setAntiAlias(false);paint.setFilterBitmap(false);paint.setDither(false);
     if(art==null)for(int i=0;i<4;i++)classic[i]=BitmapFactory.decodeResource(getResources(),original[i]);
     setContentDescription("Prévia das peças "+skin.label+": dois lados, vista frontal e traseira");
   }
   @Override protected void onDraw(Canvas canvas){
     super.onDraw(canvas);
+    if(skin!=PieceSkin.CLASSIC&&art==null){
+      backdrop.setColor(0xff242a35);canvas.drawColor(backdrop.getColor());
+      paint.setColor(0xfff2e7d5);paint.setTextSize(Math.max(11,getHeight()*.12f));
+      canvas.drawText("ASSETS PENDENTES",8,getHeight()/2f,paint);return;
+    }
     float w=getWidth()/2f,h=getHeight()/2f;
     char[] figures={'P','N','q','k'};
     for(int i=0;i<4;i++){
