@@ -263,12 +263,17 @@ public final class ChessView extends View {
     boolean custom=customPieces!=null;
     // The side nearest the player is drawn from behind; far pieces face us.
     // This is computed from the same board orientation used in Local, Bot and Bluetooth.
-    boolean rear=ChessGame.isWhitePiece(q)!=boardFlipped();
+    boolean rear=PixelPieceArt.rearView(ChessGame.isWhitePiece(q),boardFlipped());
     int pose=0;
     if(custom && pieceSkin==PieceSkin.GUARDIANS && sceneryActive && !animating){
       // Distinct starting phases avoid the entire army breathing in perfect unison.
       pose=(int)((SystemClock.uptimeMillis()/390L+Character.toLowerCase(symbol)*3L)%PixelPieceArt.IDLE_FRAMES);
-    }else if(custom && animating)pose=3; // movement shows the extended step/arm pose
+    }else if(custom && animating && pieceSkin==PieceSkin.GUARDIANS){
+      // Movement alternates torso and arm poses while the existing trajectory runs.
+      int stage=(int)Math.min(3,Math.max(0,
+        4L*(SystemClock.elapsedRealtime()-animStart)/Math.max(1L,animationDuration())));
+      pose=new int[]{0,1,3,1}[stage];
+    }
     Bitmap bmp=custom?customPieces.get(symbol,rear,pose):pieceSprites.get(symbol);
     if(bmp==null){drawPixelPiece(c,q,left,top,size);return;}
     if(custom){
