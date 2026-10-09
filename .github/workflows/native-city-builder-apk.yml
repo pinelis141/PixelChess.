@@ -37,8 +37,11 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Extract project
+      - name: Reconstruct project archive
+        shell: bash
         run: |
+          cat parts/part-* | tr -d '\n\r' | base64 -d > NativeCityBuilder_MVP_0_2.zip
+          unzip -t NativeCityBuilder_MVP_0_2.zip
           rm -rf build-work
           mkdir build-work
           unzip -q NativeCityBuilder_MVP_0_2.zip -d build-work
